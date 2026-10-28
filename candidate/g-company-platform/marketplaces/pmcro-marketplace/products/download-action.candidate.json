@@ -1,0 +1,21 @@
+{
+  "schema": "pmcro.marketplace.product.candidate/v1",
+  "id": "pmcro-orchestrator:download-action",
+  "name": "Download Local Actions (Pinned Staging)",
+  "lifecycle": {
+    "discovered": false,
+    "registered": false,
+    "granted": false,
+    "activated": false,
+    "published": false
+  },
+  "ownerAgent": "pmcro-orchestrator",
+  "skillRef": "plugins/pmcro-orchestrator/skills/download-action/SKILL.md",
+  "stageOnly": true,
+  "requires": {
+    "ownerApprovedArtifact": true,
+    "immutableSha256": true,
+    "independentCheckerBeforeActivation": true
+  },
+  "notes": "Candidate record only, not live marketplace registration or an executable action."
+}

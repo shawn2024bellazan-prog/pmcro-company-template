@@ -1,0 +1,7 @@
+﻿PASS inspect-no-authority
+PASS verify-local-pinned-digest
+PASS reject-wrong-sha256
+PASS deny-without-explicit-approval
+PASS reject-file-url
+PASS reject-unsafe-filename
+RESULT: 6/6 local security checks passed; 0 network downloads
