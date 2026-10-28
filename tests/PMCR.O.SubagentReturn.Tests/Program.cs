@@ -41,7 +41,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("durable seed defers without external dispatch and can restart", DurableSeedDeferred),
     ("transactional outbox reservation does not replay", OutboxReservation),
     ("outbox uncertain requires external reconciliation", OutboxReconciliation),
-    ("trusted Trail head anchor detects forgery", TrustedAnchorForgery)
+    ("trusted Trail head anchor detects forgery", TrustedAnchorForgery),
+    ("caller policy outage remains deferred and recoverable", DurablePolicyRecovery)
 };
 
 var failures = 0;
@@ -699,6 +700,23 @@ static async Task TrustedAnchorForgery()
     cmd.ExecuteNonQuery();
     Require(!await new TrustedTrailHeadVerifier(ledger, anchor).VerifyAsync(rig.Caller.RunId),
         "modified chain accepted against anchor");
+}
+
+static async Task DurablePolicyRecovery()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-policy-" + Guid.NewGuid().ToString("N") + ".db");
+    var outbox = new SqliteContinuationOutbox(file);
+    var policy = new DurableCallerPolicyPreflight(outbox);
+    var noApproval = await policy.EvaluateAndAdmitAsync("key-policy", "sha256:result",
+        "seed-policy", () => Task.FromResult(false));
+    Require(noApproval is null, "policy deferral was consumed");
+    Require(await outbox.ReadAsync("key-policy") is null, "unapproved seed was admitted");
+    var yesApproval = await policy.EvaluateAndAdmitAsync("key-policy", "sha256:result",
+        "seed-policy", () => Task.FromResult(true));
+    Require(yesApproval?.Status == DurableOutboxStatus.Deferred, "approved policy could not recover");
+    var mismatch = await policy.EvaluateAndAdmitAsync("key-policy", "sha256:forged",
+        "seed-policy", () => Task.FromResult(true));
+    Require(mismatch is null, "conflicting result was accepted as same idempotency key");
 }
 
 static void Require(bool condition, string message)
