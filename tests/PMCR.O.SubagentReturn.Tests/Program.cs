@@ -657,7 +657,7 @@ static async Task OutboxReservation()
     Require(reservations.Count(x => x is not null) == 1, "more than one reservation won");
     var after = await new SqliteContinuationOutbox(file).ReadAsync("idempotency-1");
     Require(after?.Status == DurableOutboxStatus.Dispatching, "reservation not persisted");
-    Require(await store.ReserveAsync("idempotency-1", after.Version) is null, "reserved dispatch replayed");
+    Require(await store.ReserveAsync("idempotency-1", after!.Version) is null, "reserved dispatch replayed");
 }
 
 static async Task OutboxReconciliation()
@@ -670,8 +670,8 @@ static async Task OutboxReconciliation()
     var restarted = new SqliteContinuationOutbox(file);
     var uncertain = await restarted.MarkUncertainAsync("idempotency-2", reservation!.Version);
     Require(uncertain?.Status == DurableOutboxStatus.ExecutionUncertain, "uncertain state not recorded");
-    Require(await restarted.ReserveAsync("idempotency-2", uncertain.Version) is null, "uncertain dispatch replayed");
-    var resolved = await restarted.ReconcileAsync("idempotency-2", uncertain.Version,
+    Require(await restarted.ReserveAsync("idempotency-2", uncertain!.Version) is null, "uncertain dispatch replayed");
+    var resolved = await restarted.ReconcileAsync("idempotency-2", uncertain!.Version,
         "external-operation-001", dispatched: true);
     Require(resolved?.Status == DurableOutboxStatus.Dispatched &&
         resolved.ExternalOperationId == "external-operation-001", "external reconciliation failed");
