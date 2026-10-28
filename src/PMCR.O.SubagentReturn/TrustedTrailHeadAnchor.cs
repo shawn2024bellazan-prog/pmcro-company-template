@@ -1,3 +1,6 @@
+using PMCR.O.Core;
+using System.Text.Json;
+
 namespace PMCR.O.SubagentReturn;
 
 /// <summary>External trust boundary: production must configure a separately governed
@@ -43,5 +46,17 @@ public sealed class TrustedTrailHeadVerifier
     {
         var head = await _anchor.ReadHeadAsync(runId, ct);
         return !string.IsNullOrWhiteSpace(head) && await _ledger.VerifyAsync(runId, head, ct);
+    }
+
+    /// <summary>Requires the source Checker Frame's *entire payload* to exist in
+    /// the verified anchored chain, normalizing only the ledger-assigned sequence.</summary>
+    public async Task<bool> VerifyEvidenceAsync(EnterpriseTrailFrame frame, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (!await VerifyAsync(frame.RunId, ct)) return false;
+        var stored = await _ledger.ReadFrameAsync(frame.RunId, frame.FrameId, ct);
+        return stored is not null &&
+            string.Equals(JsonSerializer.Serialize(frame with { Sequence = stored.Sequence }),
+                JsonSerializer.Serialize(stored), StringComparison.Ordinal);
     }
 }

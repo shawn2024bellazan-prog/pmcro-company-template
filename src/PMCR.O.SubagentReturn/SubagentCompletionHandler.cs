@@ -319,7 +319,7 @@ public sealed class SubagentCompletionHandler
                         bool integrity;
                         try
                         {
-                            integrity = await _trustedTrailHead.VerifyAsync(invocation.Caller.RunId, cancellationToken);
+                            integrity = await _trustedTrailHead.VerifyEvidenceAsync(proofFrame, cancellationToken);
                         }
                         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                         catch (Exception) { integrity = false; }

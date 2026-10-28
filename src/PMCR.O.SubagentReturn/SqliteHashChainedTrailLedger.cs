@@ -76,6 +76,21 @@ public sealed class SqliteHashChainedTrailLedger
         return hash;
     }
 
+    /// <summary>Fetches the exact persisted evidence payload, not just a matching frame ID.</summary>
+    public async Task<EnterpriseTrailFrame?> ReadFrameAsync(
+        string runId, string frameId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(frameId);
+        using var conn=Open();
+        using var cmd=conn.CreateCommand();
+        cmd.CommandText="SELECT payload FROM trail_ledger WHERE run_id=$run AND frame_id=$frame";
+        cmd.Parameters.AddWithValue("$run",runId);
+        cmd.Parameters.AddWithValue("$frame",frameId);
+        var raw=await cmd.ExecuteScalarAsync(ct) as string;
+        return raw is null ? null : JsonSerializer.Deserialize<EnterpriseTrailFrame>(raw);
+    }
+
     public async Task<bool> VerifyAsync(string runId, string? trustedHead = null, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
