@@ -93,6 +93,8 @@ public sealed class SubagentCompletionHandler
     private readonly IReadOnlyList<string> _manifestErrors;
     private readonly ISeedClaimStore _claims;
     private readonly SqliteSubagentReturnStateStore? _durableStates;
+    private readonly DurableContinuationCoordinator? _durableCoordinator;
+    private readonly TrustedTrailHeadVerifier? _trustedTrailHead;
     private readonly ISubagentCheckerProof _checker;
     private readonly IAuthenticatedCheckerEvidenceVerifier _proofVerifier;
     private readonly CallerContinuationHandler _continuation;
@@ -107,13 +109,17 @@ public sealed class SubagentCompletionHandler
         TrailFrameIntegration trail,
         CallerFailureFrameFactory frames,
         IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null,
-        SqliteSubagentReturnStateStore? durableStates = null)
+        SqliteSubagentReturnStateStore? durableStates = null,
+        DurableContinuationCoordinator? durableCoordinator = null,
+        TrustedTrailHeadVerifier? trustedTrailHead = null)
     {
         _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
         _claims = claims ?? throw new ArgumentNullException(nameof(claims));
         _checker = checker ?? throw new ArgumentNullException(nameof(checker));
         _proofVerifier = proofVerifier ?? new UnconfiguredCheckerEvidenceVerifier();
         _durableStates = durableStates;
+        _durableCoordinator = durableCoordinator;
+        _trustedTrailHead = trustedTrailHead;
         _continuation = continuation ?? throw new ArgumentNullException(nameof(continuation));
         _trail = trail ?? throw new ArgumentNullException(nameof(trail));
         _frames = frames ?? throw new ArgumentNullException(nameof(frames));
@@ -300,15 +306,51 @@ public sealed class SubagentCompletionHandler
             }
             if (final.NextSeed is not null)
             {
-                // No side effects until a proper policy-preflight + transactional outbox
-                // implementation has been installed. Verification remains recoverable.
+                // A caller-owned coordinator may atomically persist a verified, policy-
+                // bound intent. This handler NEVER dispatches a seed in durable mode.
+                // Reservation of an external operation requires a separate host action.
+                var reason = "durable_dispatch_adapter_unconfigured";
+                if (_durableCoordinator is not null)
+                {
+                    if (_trustedTrailHead is null)
+                        reason = "trusted_trail_head_unconfigured";
+                    else
+                    {
+                        bool integrity;
+                        try
+                        {
+                            integrity = await _trustedTrailHead.VerifyAsync(invocation.Caller.RunId, cancellationToken);
+                        }
+                        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                        catch (Exception) { integrity = false; }
+                        if (!integrity)
+                            reason = "trusted_trail_head_unverified";
+                        else
+                        {
+                            var decision = await _durableCoordinator.PrepareVerifiedAsync(
+                                final, invocation.Caller, attestation, cancellationToken);
+                            reason = decision switch
+                            {
+                                DurableContinuationDecision.AuthorizedIntentRecorded =>
+                                    "durable_authorized_intent_recorded",
+                                DurableContinuationDecision.AuthorizationUnavailable =>
+                                    "durable_policy_or_authority_unavailable",
+                                DurableContinuationDecision.PolicyVersionChanged =>
+                                    "durable_policy_version_changed",
+                                DurableContinuationDecision.ResultConflict =>
+                                    "durable_authorization_result_conflict",
+                                _ => "durable_authorization_rejected"
+                            };
+                        }
+                    }
+                }
                 var deferred = await _durableStates.TryTransitionAsync(key, recorded.Version,
                     DurableReturnState.Deferred, digest, cancellationToken);
                 if (deferred is null)
                     return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
                         "durable_admission_concurrent", SubagentFailureAttribution.Host);
                 return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
-                    "durable_dispatch_adapter_unconfigured", SubagentFailureAttribution.Host);
+                    reason, SubagentFailureAttribution.Host);
             }
             var closed = await _durableStates.TryTransitionAsync(key, recorded.Version,
                 DurableReturnState.Closed, digest, cancellationToken);

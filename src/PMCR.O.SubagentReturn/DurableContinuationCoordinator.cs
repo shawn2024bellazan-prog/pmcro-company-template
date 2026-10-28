@@ -61,13 +61,29 @@ public sealed class DurableContinuationCoordinator
 
     /// <summary>Only independently host-authenticated caller policy may provide
     /// authorization. Child-supplied PASS, approval, or policy values never suffice.</summary>
+    /// <summary>Host-owned idempotency scope. A child seed ID alone is never a
+    /// sufficient key: identity, intent and parent execution are included.</summary>
+    public static string ScopedKey(CallerContext caller, NextSeedEnvelope seed)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(seed);
+        var parts = new[] { "pmcro.authorized-continuation.v1", caller.AgentId,
+            caller.IntentId, caller.RunId, caller.CorrelationId,
+            seed.SeedId, seed.Execution.IdempotencyKey };
+        return string.Concat(parts.Select(part =>
+            part.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + part));
+    }
+
     public async Task<DurableContinuationDecision> PrepareVerifiedAsync(
         CycleResultEnvelope result, CallerContext caller, CheckerAttestation checker,
         CancellationToken ct = default)
     {
         if (result.NextSeed is null || CallerContinuationHandler.Validate(result,caller) is not null)
             return DurableContinuationDecision.InvalidAuthorization;
-        if (!checker.Verified || string.IsNullOrWhiteSpace(checker.EvidenceFrameId) ||
+        if (!checker.Verified ||
+            checker.CheckerAgentId == caller.ExpectedChildAgent ||
+            checker.ResultDigest != SubagentResultDigest.Compute(result) ||
+            string.IsNullOrWhiteSpace(checker.EvidenceFrameId) ||
             string.IsNullOrWhiteSpace(checker.EvidenceDigest))
             return DurableContinuationDecision.InvalidAuthorization;
         DurableAuthorizationSnapshot? a;
@@ -76,7 +92,8 @@ public sealed class DurableContinuationCoordinator
         catch (Exception) { return DurableContinuationDecision.AuthorizationUnavailable; }
         if (a is null) return DurableContinuationDecision.AuthorizationUnavailable;
         var digest=SubagentResultDigest.Compute(result);
-        if (a.ResultDigest!=digest || a.SeedId!=result.NextSeed.SeedId ||
+        if (a.IdempotencyKey != ScopedKey(caller,result.NextSeed) ||
+            a.ResultDigest!=digest || a.SeedId!=result.NextSeed.SeedId ||
             a.CheckerFrameId!=checker.EvidenceFrameId ||
             a.CheckerEvidenceDigest!=checker.EvidenceDigest ||
             a.CheckerAgentId!=checker.CheckerAgentId ||

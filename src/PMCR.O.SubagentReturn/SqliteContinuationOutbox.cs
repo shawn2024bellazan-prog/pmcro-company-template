@@ -211,10 +211,13 @@ public sealed class SqliteContinuationOutbox
         using var cmd = c.CreateCommand();
         cmd.CommandText = @"UPDATE continuation_outbox SET version=version+1,status=$next,
             external_id=COALESCE($ext,external_id) WHERE key=$k AND version=$v AND status=$prior
-            AND ($ext IS NULL OR external_id IS NULL OR external_id=$ext)";
+            AND ($ext IS NULL OR external_id IS NULL OR external_id=$ext)
+            AND ($prior != $deferred OR NOT EXISTS(
+                SELECT 1 FROM continuation_auth WHERE key=$k))";
         cmd.Parameters.AddWithValue("$next", (int)next);cmd.Parameters.AddWithValue("$ext", (object?)externalId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$k", key);cmd.Parameters.AddWithValue("$v", version);
         cmd.Parameters.AddWithValue("$prior", (int)required);
+        cmd.Parameters.AddWithValue("$deferred", (int)DurableOutboxStatus.Deferred);
         return await cmd.ExecuteNonQueryAsync(ct) == 1 ? await ReadAsync(key, ct) : null;
     }
 }
