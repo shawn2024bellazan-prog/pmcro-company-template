@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>pmcro</ToolCommandName>
+    <PackageId>PMCR.O.Cli.Candidate</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Description>Candidate PMCR-O CLI with read-only initialization planner and governed control plane.</Description>
+    <PackageReadmeFile>README-PMCRO-CLI.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README-PMCRO-CLI.md" Pack="true" PackagePath="\" />
+    <ProjectReference Include="..\ProjectName.Application.Abstractions\ProjectName.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\ProjectName.Contracts\ProjectName.Contracts.csproj" />
+    <ProjectReference Include="..\ProjectName.Core\ProjectName.Core.csproj" />
+    <ProjectReference Include="..\ProjectName.Harness\ProjectName.Harness.csproj" />
+    <ProjectReference Include="..\ProjectName.Infrastructure\ProjectName.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+</Project>

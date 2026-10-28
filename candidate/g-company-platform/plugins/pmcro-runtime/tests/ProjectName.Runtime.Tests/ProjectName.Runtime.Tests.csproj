@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <ProjectReference Include="..\..\src\ProjectName.AgentCli\ProjectName.AgentCli.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Application.Abstractions\ProjectName.Application.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Capabilities\ProjectName.Capabilities.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Contracts\ProjectName.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Core\ProjectName.Core.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Domain\ProjectName.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Harness\ProjectName.Harness.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Infrastructure\ProjectName.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Marketplace\ProjectName.Marketplace.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Runtime.Abstractions\ProjectName.Runtime.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Runtime.Maf\ProjectName.Runtime.Maf.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.ServiceDefaults\ProjectName.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\src\ProjectName.Tooling\ProjectName.Tooling.csproj" />
+  </ItemGroup>
+</Project>
