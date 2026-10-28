@@ -22,7 +22,8 @@ public sealed record TrustedSubagentInvocation(
     CallerContext Caller,
     string SubagentRunId,
     string Route,
-    string? HostObservedState);
+    string? HostObservedState,
+    CanonicalIContext? ExpectedContext = null);
 
 /// <param name="IsValid">The return is structurally valid for its claimed lifecycle state.</param>
 /// <param name="IdentityVerified">The envelope's I AM context matched the trusted invocation, so the return may consume the single terminal-return claim.</param>
@@ -82,6 +83,9 @@ public static class SubagentReturnValidator
             !Eq(who.ParentFrameId, caller.ParentFrameId) || !Eq(who.SubagentRunId, invocation.SubagentRunId))
             return SubagentValidationResult.Untrusted("correlation_mismatch", SubagentFailureAttribution.Child);
 
+        if (!CanonicalMatches(who.Canonical, invocation.ExpectedContext))
+            return SubagentValidationResult.Untrusted("canonical_i_context_mismatch", SubagentFailureAttribution.Child);
+
         if (!Eq(returned.ReplyTo, caller.AgentId) || !Eq(returned.ReturnRoute, caller.ExpectedReturnRoute))
             return SubagentValidationResult.Untrusted("invalid_return_route", SubagentFailureAttribution.Child);
 
@@ -119,8 +123,28 @@ public static class SubagentReturnValidator
             !Blank(caller.AgentId) && !Blank(caller.ExpectedChildAgent) && !Blank(caller.IntentId) &&
             !Blank(caller.RunId) && !Blank(caller.CorrelationId) && !Blank(caller.CommandId) &&
             !Blank(caller.ParentFrameId) && !Blank(caller.ExpectedReturnRoute) &&
-            !Blank(invocation.SubagentRunId) && !Blank(invocation.Route);
+            !Blank(invocation.SubagentRunId) && !Blank(invocation.Route) && ValidCanonical(invocation.ExpectedContext);
     }
+
+    private static bool ValidCanonical(CanonicalIContext? c) =>
+        c is not null && c.Schema == "pmcro.i-context/v1" &&
+        !Blank(c.IRef) && !Blank(c.EntityRef) && !Blank(c.Role) && !Blank(c.Behavior) &&
+        !Blank(c.IntentRef) && !Blank(c.LineageRootRef) && c.ParentIRef is not null &&
+        c.ObjectIRefs is not null && c.ObjectIRefs.All(x => x is not null) &&
+        c.AddressedIRef is not null && !Blank(c.AuthorityCeilingRef) &&
+        c.MetaDepth >= 0 && !c.ConsciousnessClaim;
+
+    private static bool CanonicalMatches(CanonicalIContext? child, CanonicalIContext? host) =>
+        ValidCanonical(child) && ValidCanonical(host) &&
+        child!.Schema == host!.Schema && child.IRef == host.IRef &&
+        child.EntityRef == host.EntityRef && child.Role == host.Role &&
+        child.Behavior == host.Behavior && child.IntentRef == host.IntentRef &&
+        child.LineageRootRef == host.LineageRootRef && child.ParentIRef == host.ParentIRef &&
+        child.ObjectIRefs.SequenceEqual(host.ObjectIRefs, StringComparer.Ordinal) &&
+        child.AddressedIRef == host.AddressedIRef &&
+        child.AuthorityCeilingRef == host.AuthorityCeilingRef &&
+        child.MetaDepth == host.MetaDepth &&
+        child.ConsciousnessClaim == host.ConsciousnessClaim;
 
     private static bool Blank(string? value) => string.IsNullOrWhiteSpace(value);
 

@@ -26,7 +26,7 @@ public sealed record SubagentReturnReceipt(
     ContinuationReceipt? Continuation);
 
 /// <summary>Result of an independent checker proof established from governed evidence, never from the child's message.</summary>
-public sealed record CheckerAttestation(bool Verified, string CheckerAgentId);
+public sealed record CheckerAttestation(bool Verified, string CheckerAgentId, string? EvidenceFrameId = null, string? EvidenceDigest = null);
 
 /// <summary>
 /// Implementations must verify a checker identity independent of the maker (the subagent)
@@ -112,9 +112,12 @@ public sealed class SubagentCompletionHandler
                 SubagentFailureAttribution.Caller);
 
         // The host's own lifecycle observation outranks anything the child claims, including a late success.
+        if (invocation.HostObservedState == "pending")
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "subagent_pending", SubagentFailureAttribution.Host);
         if (invocation.HostObservedState is not null)
         {
-            var hostStatus = FromLifecycle(invocation.HostObservedState);
+            var hostStatus = invocation.HostObservedState == "terminal_missing"
+                ? SubagentReturnStatus.Failed : FromLifecycle(invocation.HostObservedState);
             if (hostStatus is null || hostStatus == SubagentReturnStatus.Completed)
                 return await ConcludeAsync(invocation, SubagentReturnStatus.Rejected, "invalid_host_observation",
                     SubagentFailureAttribution.Host);
@@ -125,6 +128,9 @@ public sealed class SubagentCompletionHandler
             return await ConcludeAsync(invocation, hostStatus.Value, "host_observed_" + invocation.HostObservedState,
                 SubagentFailureAttribution.Host);
         }
+
+        if (returned is null)
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "no_authenticated_terminal_observation", SubagentFailureAttribution.Host);
 
         var validation = SubagentReturnValidator.Validate(returned, invocation);
         if (returned is null || !validation.IdentityVerified)
@@ -192,6 +198,16 @@ public sealed class SubagentCompletionHandler
             string.Equals(attestation.CheckerAgentId, returned.IContext?.AgentId, StringComparison.Ordinal))
             return await ConcludeAsync(invocation, SubagentReturnStatus.Rejected, "checker_not_independent",
                 SubagentFailureAttribution.Host);
+
+        if (string.IsNullOrWhiteSpace(attestation.EvidenceFrameId) ||
+            string.IsNullOrWhiteSpace(attestation.EvidenceDigest))
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_evidence_missing", SubagentFailureAttribution.Host);
+        var checkerFrames = await _trail.ReadCorrelatedAsync(invocation.Caller, cancellationToken);
+        if (!checkerFrames.Any(frame =>
+            string.Equals(frame.FrameId, attestation.EvidenceFrameId, StringComparison.Ordinal) &&
+            string.Equals(frame.AgentId, attestation.CheckerAgentId, StringComparison.Ordinal) &&
+            string.Equals(frame.PayloadDigest, attestation.EvidenceDigest, StringComparison.Ordinal)))
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_evidence_unverified", SubagentFailureAttribution.Host);
 
         // The handoff proposal (next seed) is evaluated by the caller's existing continuation
         // handler: lineage, evidence, current policy, budgets and atomic idempotency all apply.

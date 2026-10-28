@@ -37,6 +37,12 @@ public static class SubagentLifecycleStates
 /// assertion: the caller compares every field with its own trusted invocation
 /// record and never reconstructs the invocation from this value.
 /// </summary>
+public sealed record CanonicalIContext(
+    string Schema, string IRef, string EntityRef, string Role, string Behavior,
+    string IntentRef, string LineageRootRef, string ParentIRef,
+    IReadOnlyList<string> ObjectIRefs, string AddressedIRef,
+    string AuthorityCeilingRef, int MetaDepth, bool ConsciousnessClaim);
+
 public sealed record IAmContext(
     [property: JsonPropertyName("agent_id")] string AgentId,
     [property: JsonPropertyName("role")] string Role,
@@ -45,7 +51,8 @@ public sealed record IAmContext(
     [property: JsonPropertyName("correlation_id")] string CorrelationId,
     [property: JsonPropertyName("causation_id")] string CausationId,
     [property: JsonPropertyName("parent_frame_id")] string ParentFrameId,
-    [property: JsonPropertyName("subagent_run_id")] string SubagentRunId);
+    [property: JsonPropertyName("subagent_run_id")] string SubagentRunId,
+    [property: JsonPropertyName("canonical_i_context")] CanonicalIContext? Canonical = null);
 
 /// <summary>
 /// Terminal return of a delegated subagent to its calling agent

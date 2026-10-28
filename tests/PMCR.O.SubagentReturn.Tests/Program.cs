@@ -24,7 +24,11 @@ var tests = new (string Name, Func<Task> Run)[]
     ("grant and route mismatches are rejected", GrantAndRouteMismatch),
     ("missing parent frame is attributed to the caller", ParentFrameMissing),
     ("incomplete trusted context is rejected without a trail write", TrustedContextInvalid),
-    ("native command router enforces authorization, binding, and idempotency", RouterIntegration)
+    ("native command router enforces authorization, binding, and idempotency", RouterIntegration),
+    ("canonical role spoofing denied", RoleSpoofing),
+    ("canonical authority widening denied", AuthorityWidening),
+    ("host terminal missing closes run", TerminalMissing),
+    ("checker evidence forgery rejected", ForgedCheckerEvidence)
 };
 
 var failures = 0;
@@ -100,7 +104,7 @@ static async Task TimedOutReturn()
     // A null return with no host observation is simply an unauthenticated non-return.
     var rig3 = await Rig.CreateAsync();
     var none = await rig3.Handler().HandleAsync(null, rig3.Invocation(), rig3.Grant());
-    Require(none.Status == SubagentReturnStatus.Rejected && none.ReasonCode == "no_return", "missing return was accepted");
+    Require(none.Status == SubagentReturnStatus.Deferred && none.ReasonCode == "no_authenticated_terminal_observation", "nonterminal absence closed run");
 }
 
 static async Task MissingFinalResult()
@@ -451,6 +455,44 @@ static async Task RouterIntegration()
             timedOut.Dispatcher.Calls == 0, "host-observed timeout was not honored through the router");
 }
 
+static async Task RoleSpoofing()
+{
+    var rig = await Rig.CreateAsync();
+    var good = rig.Completed();
+    var fake = good with { IContext = good.IContext! with { Canonical = good.IContext.Canonical! with { Role = "orchestrator" } } };
+    var result = await rig.Handler().HandleAsync(fake, rig.Invocation(), rig.Grant());
+    Require(result.ReasonCode == "canonical_i_context_mismatch" && rig.Dispatcher.Calls == 0, "spoofed role accepted");
+}
+
+static async Task AuthorityWidening()
+{
+    var rig = await Rig.CreateAsync();
+    var good = rig.Completed();
+    var fake = good with { IContext = good.IContext! with { Canonical = good.IContext.Canonical! with { AuthorityCeilingRef = "admin" } } };
+    var result = await rig.Handler().HandleAsync(fake, rig.Invocation(), rig.Grant());
+    Require(result.ReasonCode == "canonical_i_context_mismatch" && rig.Dispatcher.Calls == 0, "expanded authority accepted");
+}
+
+static async Task TerminalMissing()
+{
+    var rig = await Rig.CreateAsync();
+    var h = rig.Handler();
+    var pending = await h.HandleAsync(null, rig.Invocation("pending"), rig.Grant());
+    Require(pending.Status == SubagentReturnStatus.Deferred, "pending did not defer");
+    var closed = await h.HandleAsync(null, rig.Invocation("terminal_missing"), rig.Grant());
+    Require(closed.Status == SubagentReturnStatus.Failed && closed.ReasonCode == "host_observed_terminal_missing", "terminal missing not recorded");
+    var replay = await h.HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(replay.Status == SubagentReturnStatus.Duplicate && rig.Dispatcher.Calls == 0, "late replay accepted");
+}
+
+static async Task ForgedCheckerEvidence()
+{
+    var rig = await Rig.CreateAsync();
+    rig.Checker.Attestation = new(true, "@checker", "forged-frame", "forged-digest");
+    var result = await rig.Handler().HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(result.ReasonCode == "checker_evidence_unverified" && rig.Dispatcher.Calls == 0, "fake checker evidence accepted");
+}
+
 static void Require(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException(message);
@@ -479,6 +521,7 @@ sealed class Rig
         var rig = new Rig();
         if (includeParent) await rig.Trails.AppendAsync(rig.Frame("frame-parent"));
         await rig.Trails.AppendAsync(rig.Frame("frame-source"));
+        await rig.Trails.AppendAsync(rig.Frame("frame-checker") with { AgentId = "@checker", PayloadDigest = "sha256:test-proof" });
         rig.Resolver.Binding = new TrustedSubagentBinding(rig.Invocation(), rig.Grant());
         return rig;
     }
@@ -511,15 +554,20 @@ sealed class Rig
         "@maker", SubagentReturnSchemas.ReturnCommandType, DateTimeOffset.UtcNow, "native-return-key",
         Completed(), new Dictionary<string, string>());
 
+    public CanonicalIContext Canonical() => new(
+        "pmcro.i-context/v1", "@maker", "@maker", "maker", "bounded-implementation",
+        Caller.IntentId, Caller.RunId, Caller.AgentId, Array.Empty<string>(),
+        Caller.AgentId, "scope:read-only", 1, false);
+
     public TrustedSubagentInvocation Invocation(string? hostObserved = null) =>
-        new(Caller, SubagentRunId, "/pmcro:subagent-return", hostObserved);
+        new(Caller, SubagentRunId, "/pmcro:subagent-return", hostObserved, Canonical());
 
     public PluginActivationGrant Grant(bool enabled = true, bool registered = true) =>
         new("pmcro.subagent-return", "0.1.0", "pmcro.policy.subagent-return", "@host", registered, enabled);
 
     public IAmContext IAm() => new(
         "@maker", "maker", Caller.IntentId, Caller.RunId, Caller.CorrelationId,
-        Caller.CommandId, Caller.ParentFrameId, SubagentRunId);
+        Caller.CommandId, Caller.ParentFrameId, SubagentRunId, Canonical());
 
     public SubagentReturnEnvelope NonCompleted(string state) => new(
         SubagentReturnSchemas.SubagentReturn, SubagentReturnSchemas.MessageType, IAm(), state,
@@ -567,7 +615,7 @@ sealed class Rig
 
 sealed class FakeSubagentChecker : ISubagentCheckerProof
 {
-    public CheckerAttestation? Attestation { get; set; } = new(true, "@checker");
+    public CheckerAttestation? Attestation { get; set; } = new(true, "@checker", "frame-checker", "sha256:test-proof");
     public bool Throw { get; set; }
     public int Calls { get; private set; }
 
