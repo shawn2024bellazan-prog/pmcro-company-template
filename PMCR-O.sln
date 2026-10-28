@@ -18,6 +18,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PMCR.O.Continuation.Tests",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PMCR.O.Continuation.Integration.Tests", "tests\PMCR.O.Continuation.Integration.Tests\PMCR.O.Continuation.Integration.Tests.csproj", "{3C17C45C-1109-4C2C-8B50-2B8D799C0008}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PMCR.O.SubagentReturn", "src\PMCR.O.SubagentReturn\PMCR.O.SubagentReturn.csproj", "{3C17C45C-1109-4C2C-8B50-2B8D799C0009}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PMCR.O.SubagentReturn.Tests", "tests\PMCR.O.SubagentReturn.Tests\PMCR.O.SubagentReturn.Tests.csproj", "{3C17C45C-1109-4C2C-8B50-2B8D799C000A}"
+EndProject
 Global
  GlobalSection(SolutionConfigurationPlatforms) = preSolution
   Debug|Any CPU = Debug|Any CPU
@@ -57,5 +61,13 @@ Global
   {3C17C45C-1109-4C2C-8B50-2B8D799C0008}.Debug|Any CPU.Build.0 = Debug|Any CPU
   {3C17C45C-1109-4C2C-8B50-2B8D799C0008}.Release|Any CPU.ActiveCfg = Release|Any CPU
   {3C17C45C-1109-4C2C-8B50-2B8D799C0008}.Release|Any CPU.Build.0 = Release|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C0009}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C0009}.Debug|Any CPU.Build.0 = Debug|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C0009}.Release|Any CPU.ActiveCfg = Release|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C0009}.Release|Any CPU.Build.0 = Release|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C000A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C000A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C000A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+  {3C17C45C-1109-4C2C-8B50-2B8D799C000A}.Release|Any CPU.Build.0 = Release|Any CPU
  EndGlobalSection
 EndGlobal

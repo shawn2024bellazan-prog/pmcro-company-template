@@ -82,6 +82,9 @@ jobs:
       - name: Run application integration contract tests
         run: dotnet run --project tests/PMCR.O.Continuation.Integration.Tests/PMCR.O.Continuation.Integration.Tests.csproj --configuration Release --no-build
 
+      - name: Run subagent-return contract tests
+        run: dotnet run --project tests/PMCR.O.SubagentReturn.Tests/PMCR.O.SubagentReturn.Tests.csproj --configuration Release --no-build
+
       - name: Run demo smoke test
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_demo }}
         run: dotnet run --project src/PMCR.O.Demo/PMCR.O.Demo.csproj --configuration Release --no-build

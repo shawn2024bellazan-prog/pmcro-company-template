@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../PMCR.O.Core/PMCR.O.Core.csproj" />
+    <ProjectReference Include="../PMCR.O.Continuation/PMCR.O.Continuation.csproj" />
+    <ProjectReference Include="../PMCR.O.Continuation.Plugin/PMCR.O.Continuation.Plugin.csproj" />
+  </ItemGroup>
+</Project>

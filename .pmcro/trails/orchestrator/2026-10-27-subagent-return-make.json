@@ -1,0 +1,40 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.operation",
+  "command": "@maker /pmcro:make implement_subagent_return_plugin",
+  "actor": "maker",
+  "parent_artifact": "pmcro.company-template",
+  "child_artifact": "pmcro.subagent-return",
+  "run_id": "derived-make-subagent-return-2026-10-27",
+  "run_id_kind": "derived",
+  "depth": 1,
+  "max_depth": 1,
+  "branch": "feat/pmcro-subagent-return-v1",
+  "base_branch": "feat/pmcro-activation",
+  "base_commit": "99de1809e191ecb92f2813e0ec23f489b82b00f9",
+  "status": "candidate",
+  "evidence": {
+    "manifest": "plugins/pmcro.subagent-return/plugin.json",
+    "adapter": "src/PMCR.O.SubagentReturn/SubagentCompletionHandler.cs",
+    "tests": "tests/PMCR.O.SubagentReturn.Tests/Program.cs",
+    "design": "docs/architecture/subagent-return.md",
+    "plan": "docs/decisions/0006-subagent-return-make-plan.md"
+  },
+  "verification": {
+    "dotnet_build": "passed_local_release_zero_warnings",
+    "contract_tests": "18_of_18_passed_local; existing 47_core_20_continuation_9_integration_still_passed",
+    "mutation_check": "3_guards_broken_individually_each_caught_by_intended_tests_then_restored",
+    "github_ci": "pending_not_yet_observed_for_this_commit",
+    "independent_checker": "pending",
+    "external_marketplaces": "reference_only"
+  },
+  "promotion": "generated",
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "validate_subagent_return_plugin",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}

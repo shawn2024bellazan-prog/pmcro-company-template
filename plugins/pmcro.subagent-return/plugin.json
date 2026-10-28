@@ -1,0 +1,74 @@
+{
+  "$schema": "../../schemas/pmcro-plugin.schema.json",
+  "schema": "pmcro.plugin.v1",
+  "artifactId": "pmcro.subagent-return",
+  "artifactType": "plugin",
+  "version": "0.1.0",
+  "parent": {
+    "artifactId": "pmcro.company-template",
+    "runId": "derived-make-subagent-return-2026-10-27",
+    "idKind": "derived",
+    "depth": 1,
+    "maxDepth": 1
+  },
+  "owner": {
+    "principal": "shawn2024bellazan-prog",
+    "domainId": "pmcro",
+    "charterId": "pmcro.governance.draft"
+  },
+  "template": {
+    "templateId": "pmcro.declarative-plugin",
+    "version": 1
+  },
+  "sourceMarketplaces": [],
+  "children": [],
+  "requiredShape": {
+    "skillMd": false,
+    "agentFile": false,
+    "scripts": true,
+    "references": true,
+    "assets": false,
+    "tests": true
+  },
+  "entrypoint": {
+    "assembly": "PMCR.O.SubagentReturn",
+    "type": "PMCR.O.SubagentReturn.SubagentCompletionHandler"
+  },
+  "routes": [
+    {
+      "path": "/pmcro:subagent-return",
+      "operation": "subagent.return",
+      "target": "@orchestrator",
+      "policyRef": "pmcro.policy.subagent-return",
+      "permissions": ["pmcro.subagent-return.accept"]
+    }
+  ],
+  "contracts": ["pmcro.subagent-return.v1", "pmcro.cycle-result.v1", "pmcro.next-seed.v1"],
+  "dependencies": [
+    { "artifactId": "PMCR.O.Core", "kind": "assembly", "version": "source-commit" },
+    { "artifactId": "PMCR.O.Continuation", "kind": "assembly", "version": "source-commit" },
+    { "artifactId": "PMCR.O.Continuation.Plugin", "kind": "assembly", "version": "source-commit" }
+  ],
+  "governance": {
+    "enabledByDefault": false,
+    "approvalRequired": true,
+    "trailRequired": true,
+    "policyRef": "pmcro.policy.subagent-return"
+  },
+  "execution": {
+    "maxDepth": 5,
+    "retryLimit": 2,
+    "idempotencyRequired": true
+  },
+  "training": { "sourceRefs": [], "redactionRefs": [], "consent": "required", "status": "none" },
+  "evidence": { "tier": "unknown", "verificationRefs": [] },
+  "promotion": "generated",
+  "nextSeed": {
+    "returnTo": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "validate_subagent_return_plugin",
+    "state": "proposed",
+    "inheritedAuthority": false
+  }
+}
