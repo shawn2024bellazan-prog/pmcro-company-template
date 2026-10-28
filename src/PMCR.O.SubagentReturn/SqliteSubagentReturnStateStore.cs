@@ -105,8 +105,10 @@ public sealed class SqliteSubagentReturnStateStore
         (previous, next) switch
         {
             (DurableReturnState.Received, DurableReturnState.Verified) => true,
+            (DurableReturnState.Received, DurableReturnState.Closed) => true,
             (DurableReturnState.Received, DurableReturnState.Deferred) => true,
             (DurableReturnState.Deferred, DurableReturnState.Verified) => true,
+            (DurableReturnState.Deferred, DurableReturnState.Closed) => true,
             (DurableReturnState.Verified, DurableReturnState.Deferred) => true,
             (DurableReturnState.Verified, DurableReturnState.Dispatching) => true,
             (DurableReturnState.Verified, DurableReturnState.Closed) => true,

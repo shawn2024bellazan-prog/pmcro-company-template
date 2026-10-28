@@ -118,6 +118,9 @@ public sealed class SubagentCompletionHandler
         _checker = checker ?? throw new ArgumentNullException(nameof(checker));
         _proofVerifier = proofVerifier ?? new UnconfiguredCheckerEvidenceVerifier();
         _durableStates = durableStates;
+        if (durableCoordinator is not null && durableStates is null)
+            throw new ArgumentException("Durable coordinator requires durable return-state store.",
+                nameof(durableCoordinator));
         _durableCoordinator = durableCoordinator;
         _trustedTrailHead = trustedTrailHead;
         _continuation = continuation ?? throw new ArgumentNullException(nameof(continuation));
@@ -165,6 +168,32 @@ public sealed class SubagentCompletionHandler
                 return await ConcludeAsync(invocation, SubagentReturnStatus.Rejected, "invalid_host_observation",
                     SubagentFailureAttribution.Host);
 
+            if (_durableStates is not null)
+            {
+                var key = ClaimKey(invocation);
+                var marker = "host-observed:" + invocation.HostObservedState;
+                var state = await _durableStates.ReadAsync(key, cancellationToken);
+                if (state is null)
+                    state = await _durableStates.TryTransitionAsync(key, null,
+                        DurableReturnState.Received, marker, cancellationToken)
+                        ?? await _durableStates.ReadAsync(key, cancellationToken);
+                if (state is null)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                        "host_terminal_admission_unavailable", SubagentFailureAttribution.Host);
+                if (state.State is DurableReturnState.Dispatching or DurableReturnState.ExecutionUncertain)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.ExecutionUncertain,
+                        "host_terminal_external_reconciliation_required", SubagentFailureAttribution.Host);
+                if (state.State is DurableReturnState.Closed or DurableReturnState.Dispatched)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.Duplicate,
+                        "host_terminal_already_closed", SubagentFailureAttribution.None);
+                var closed = await _durableStates.TryTransitionAsync(key, state.Version,
+                    DurableReturnState.Closed, state.ResultDigest, cancellationToken);
+                if (closed is null)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                        "host_terminal_concurrent", SubagentFailureAttribution.Host);
+                return await ConcludeAsync(invocation, hostStatus.Value,
+                    "host_observed_" + invocation.HostObservedState, SubagentFailureAttribution.Host);
+            }
             var claimedByHost = await ClaimOrConcludeAsync(invocation, cancellationToken);
             if (claimedByHost is not null)
                 return claimedByHost;

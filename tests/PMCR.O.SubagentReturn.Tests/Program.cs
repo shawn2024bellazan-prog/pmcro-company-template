@@ -51,7 +51,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("restart after authorized reservation requires reconciliation", AuthorizedReservationRestart),
     ("unanchored or missing checker frame fails closed", MissingAnchoredProof),
     ("forged authorization snapshot rejected", ForgedAuthorizationSnapshot),
-    ("authorized policy outage recovers", AuthorizedPolicyOutageRecovery)
+    ("authorized policy outage recovers", AuthorizedPolicyOutageRecovery),
+    ("durable host terminal survives restart and blocks late return", DurableHostTerminalRestart),
+    ("durable coordinator cannot fall through legacy dispatch", DurableCoordinatorRequiresStore)
 };
 
 var failures = 0;
@@ -914,6 +916,40 @@ static async Task AuthorizedPolicyOutageRecovery()
         .PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,a.Rig.Checker.Attestation!);
     Require(retry==DurableContinuationDecision.AuthorizedIntentRecorded,
         "recoverable policy outage burned authorization");
+}
+
+static async Task DurableHostTerminalRestart()
+{
+    var rig=await Rig.CreateAsync();
+    var path=Path.Combine(Path.GetTempPath(),"pmcro-host-terminal-"+Guid.NewGuid().ToString("N")+".db");
+    var first=await rig.Handler(durableStates:new SqliteSubagentReturnStateStore(path))
+        .HandleAsync(null,rig.Invocation("terminal_missing"),rig.Grant());
+    Require(first.Status==SubagentReturnStatus.Failed &&
+        first.ReasonCode=="host_observed_terminal_missing",
+        "host did not durably close missing terminal");
+    var later=await rig.Handler(durableStates:new SqliteSubagentReturnStateStore(path))
+        .HandleAsync(rig.Completed(),rig.Invocation(),rig.Grant());
+    Require(later.Status is SubagentReturnStatus.Duplicate or SubagentReturnStatus.Rejected &&
+        rig.Dispatcher.Calls==0,
+        "late return bypassed durable host terminal after restart");
+    var stateKey=string.Concat(new [] { SubagentReturnSchemas.SubagentReturn,
+        rig.Caller.AgentId,rig.Caller.IntentId,rig.Caller.RunId,Rig.SubagentRunId }
+        .Select(value=>value.Length+":"+value));
+    var state=await new SqliteSubagentReturnStateStore(path).ReadAsync(stateKey);
+    Require(state?.State==DurableReturnState.Closed,
+        "host-observed terminal failed to persist closed state");
+}
+
+static async Task DurableCoordinatorRequiresStore()
+{
+    var rig=await Rig.CreateAsync();
+    var file=Path.Combine(Path.GetTempPath(),"pmcro-constructor-"+Guid.NewGuid().ToString("N")+".db");
+    var coordinator=new DurableContinuationCoordinator(new SqliteContinuationOutbox(file));
+    bool rejected=false;
+    try { _=rig.Handler(durableCoordinator:coordinator); }
+    catch(ArgumentException) { rejected=true; }
+    Require(rejected && rig.Dispatcher.Calls==0,
+        "durable coordinator silently used legacy non-durable dispatch");
 }
 
 static void Require(bool condition, string message)

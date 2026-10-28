@@ -1,6 +1,8 @@
 # PMCR-O implementation status — development snapshot
 
-**Source baseline inspected:** `9f4d470eac205f2987d7cf817d1db22d3c306644` on `feat/pmcro-subagent-return-v1`, October 28, 2026.
+**Updated development snapshot:** the bounded authorization-to-return integration now stages verified intent in the durable handler and requires the exact checker frame in an anchored hash chain. This document describes the branch after the late-October-28 integration cycle; verify the most recent commit and GitHub CI run before using it.
+
+**Earlier verified baseline:** `9f4d470eac205f2987d7cf817d1db22d3c306644` on `feat/pmcro-subagent-return-v1`, October 28, 2026.
 
 **CI evidence:** [GitHub Actions run 40642959766](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/40642959766), completed successfully: .NET 10 solution build; 47 Core, 20 continuation, 9 integration and 38 subagent-return checks; demo smoke test. These are **test counts**, not deployed agents or live work.
 
@@ -22,7 +24,7 @@
 ## Important boundaries that remain
 
 - **Production activation is not done.** The subagent-return plugin is explicitly disabled by default and subject to an authenticated host grant.
-- **End-to-end durable dispatch is unfinished.** Authorized snapshot APIs are not yet composed into a fully running, externally side-effecting `SubagentCompletionHandler` path with atomic policy-to-dispatch guarantees.
+- **End-to-end external dispatch is unfinished.** The authorized snapshot API is now composed into the opt-in durable `SubagentCompletionHandler` to stage intentions only after host Checker verification and an exact anchored checker frame. It intentionally does not invoke a side-effecting dispatcher. A trusted external operation service and authoritative reconciliation remain missing.
 - **The authorized-source and verification interfaces remain fail-closed unless configured.** A self-reported PASS or forged signature cannot be accepted as proof of an independently executed Checker.
 - **Hash chaining is not immutable storage.** External head anchoring, trusted writer isolation and durable independent retention are operational requirements.
 - **Production key and identity custody are not configured.**
@@ -31,7 +33,7 @@
 
 ## What should happen next?
 
-1. Integrate the trusted authorization snapshots into the live *durable* return/continuation path, keeping external dispatch disabled by default.
+1. Validate the new authorized-snapshot integration and host-observed terminal closure, keeping external dispatch disabled by default.
 2. Add tests for revoked policy versions, concurrent authorization, restart/reservation, forged checker evidence, and untrusted anchors.
 3. Verify CI on the exact resulting commit.
 4. Obtain a genuinely independent Checker verdict and host approvals for any later environment change.
