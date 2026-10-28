@@ -24,3 +24,7 @@ No URL and independently trusted SHA-256 were supplied, so **no action artifact 
 ## Trust and release gates
 
 The independent `pmcro-checker` plugin inspected locally is unregistered/ungranted/unactivated, so there is **no genuine authenticated Checker PASS** for this snapshot. G: Seed 0033 HALT and Seed 0034 UNEXECUTED stay unchanged. All imported files are intentionally isolated as candidate sources, not production authority.
+
+## VS Code and additional plugin marketplaces
+
+Workspace-scoped settings in `.vscode/settings.json` enable native Agent Skills and plugin marketplace discovery. Microsoft's documented default catalogs (`github/copilot-plugins` and `github/awesome-copilot`) and Anthropic's plugin directory are listed for discovery; no item is installed or enabled automatically. `.agents/skills/download-action` is a native portable skill tested on local Node 24. `plugins/pmcro-local-actions` is a separate Agent Plugins 1.0 candidate package. The repository root `.claude-plugin/marketplace.json` advertises the candidate package to compatible clients; this does not grant PMCR-O capability authority.

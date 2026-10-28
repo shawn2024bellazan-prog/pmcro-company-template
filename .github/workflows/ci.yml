@@ -67,6 +67,13 @@ jobs:
           puts "Validated #{files.length} YAML files"
           RUBY
 
+      - name: Validate candidate marketplace staging (offline)
+        shell: bash
+        run: |
+          node --test candidate/g-company-platform/.agents/skills/download-action/tests/download-action.test.cjs
+          pwsh -NoProfile -File candidate/g-company-platform/plugins/pmcro-orchestrator/skills/download-action/tests/test-download-action.ps1
+          cmp candidate/g-company-platform/.agents/skills/download-action/scripts/download-action.cjs candidate/g-company-platform/plugins/pmcro-local-actions/skills/download-action/scripts/download-action.cjs
+
       - name: Restore dependencies
         run: dotnet restore PMCR-O.sln
 

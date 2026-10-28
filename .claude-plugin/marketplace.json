@@ -1,0 +1,16 @@
+{
+  "name": "pmcro-company-candidates",
+  "description": "Candidate-only PMCR-O portable actions; discovery is not authorization",
+  "owner": {
+    "name": "PMCR-O candidate company"
+  },
+  "plugins": [
+    {
+      "name": "pmcro-local-actions",
+      "source": "./candidate/g-company-platform/plugins/pmcro-local-actions",
+      "description": "Pinned artifact staging only; never install or execute",
+      "version": "0.1.0",
+      "category": "development"
+    }
+  ]
+}

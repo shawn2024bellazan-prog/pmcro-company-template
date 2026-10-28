@@ -1,0 +1,10 @@
+{
+  "chat.customizations.marketplace.enabled": true,
+  "chat.plugins.enabled": true,
+  "chat.useAgentSkills": true,
+  "chat.plugins.marketplaces": [
+    "github/copilot-plugins",
+    "github/awesome-copilot",
+    "anthropics/claude-plugins-official"
+  ]
+}

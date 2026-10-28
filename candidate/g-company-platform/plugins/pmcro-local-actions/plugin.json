@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pmcro-local-actions",
+  "version": "0.1.0",
+  "description": "Candidate-only pinned local action artifact verification and staging; no activation, install, or execution",
+  "author": {
+    "name": "PMCR-O candidate team"
+  },
+  "keywords": [
+    "pmcro",
+    "actions",
+    "staging",
+    "candidate"
+  ]
+}

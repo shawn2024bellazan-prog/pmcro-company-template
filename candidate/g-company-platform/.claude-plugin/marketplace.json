@@ -1,0 +1,16 @@
+{
+  "name": "pmcro-company-candidates",
+  "description": "Candidate-only PMCR-O company portable plugin catalog; discovery is not authorization",
+  "owner": {
+    "name": "PMCR-O candidate company"
+  },
+  "plugins": [
+    {
+      "name": "pmcro-local-actions",
+      "source": "./plugins/pmcro-local-actions",
+      "description": "Pinned artifact staging without installation or execution",
+      "version": "0.1.0",
+      "category": "development"
+    }
+  ]
+}
