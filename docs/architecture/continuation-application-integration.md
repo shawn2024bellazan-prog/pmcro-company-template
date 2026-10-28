@@ -85,6 +85,16 @@ The combined `.github/workflows/ci.yml` runs these and the demo smoke test
 using the .NET 10 SDK. The PowerShell `scripts/validate.ps1` runs the same
 three test harnesses. Passing CI is a prerequisite, not self-promotion.
 
+Verified automated evidence at commit
+`d850f3a92bb75bc3f6ea0c2a2fc299e7c371a1b7`:
+
+- Combined workflow run `40625980193`: success; 47/47 Core tests,
+  20/20 continuation tests, 9/9 integration tests and demo smoke success.
+- Standalone continuation workflow run `40625980248`: success.
+- GitHub workflow syntax was checked locally using SHA-256-verified
+  actionlint v1.7.7. The local environment has no .NET SDK or PowerShell;
+  the runtime results above are from GitHub Actions, not local execution.
+
 Next gate: an independently assigned checker must inspect code, provenance,
 real branch CI, contract coverage, and the missing production adapters before
 any plugin or application promotion.

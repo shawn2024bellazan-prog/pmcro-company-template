@@ -1,0 +1,37 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.validation_observation",
+  "run_id": "derived-make-continuation-application-2026-10-28",
+  "run_id_kind": "derived",
+  "checked_commit": "d850f3a92bb75bc3f6ea0c2a2fc299e7c371a1b7",
+  "branch": "feat/pmcro-activation",
+  "observed_automation": {
+    "combined_workflow_run": 40625980193,
+    "combined_conclusion": "success",
+    "continuation_workflow_run": 40625980248,
+    "continuation_conclusion": "success",
+    "core_contracts": "47/47 passed",
+    "continuation_contracts": "20/20 passed",
+    "integration_contracts": "9/9 passed",
+    "demo_smoke_test": "passed",
+    "github_workflow_syntax": "actionlint v1.7.7 passed",
+    "local_dotnet": "unavailable",
+    "local_pwsh": "unavailable"
+  },
+  "source_sha256": "003bb927a7f7e2a4128e907cffcbbbd7c27b0cadda71a99b7dd9040c10f5bcce",
+  "status": "automated_checks_observed_passed",
+  "governance": {
+    "independent_semantic_checker": "pending",
+    "runtime_host_identity_and_grants": "not_configured",
+    "production_authorization": "pending",
+    "plugin_promotion": "not_authorized"
+  },
+  "promotion": "generated",
+  "next_seed": {
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "verify_combined_continuation_application",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}

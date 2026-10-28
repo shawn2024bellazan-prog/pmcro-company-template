@@ -28,7 +28,7 @@ dotnet run --project src/PMCR.O.Demo
 The Orchestrator owns cycle continuation. It may retry recoverable failures or continue toward an incomplete objective within explicit budgets. Auto-continuation does not grant permission to mutate repositories, install plugins, execute untrusted code, disclose secrets, or expand privileges. Unknown actions require review. Messy or incomplete messages should be enqueued verbatim and remain non-terminal until completion, cancellation, or escalation. See `docs/architecture/intent-queue.md`, `docs/architecture/queue-worker.md`, `AGENTS.md`, and `docs/architecture/approval-and-autonomy.md`.
 
 ## Verification status
-Static checks passed for project XML, solution project paths, queue lifecycle markers, and test registration. The source files are **not compiled in this environment** because the .NET SDK is unavailable. CI is configured for push, pull-request, and manual (`workflow_dispatch`) runs, but has not been triggered because GitHub write access is unavailable.
+The combined source **compiled and passed CI on GitHub** at commit `d850f3a92bb75bc3f6ea0c2a2fc299e7c371a1b7` (run `40625980193`): 47 Core, 20 continuation and 9 integration contract checks, plus the demo smoke test. The standalone continuation workflow also passed (run `40625980248`). The local scratch environment lacks the .NET SDK, so compilation was observed in GitHub Actions, not run locally. Independent semantic checking, runtime host wiring and production approval remain pending.
 
 ## Enterprise ecosystem foundation (Increment 5)
 
@@ -124,4 +124,4 @@ This is an adapter boundary with a test fake, not a live connection to a marketp
 
 The GitHub Actions workflow in `.github/workflows/ci.yml` now explicitly runs on pushes to branches, pull-request updates, manual `workflow_dispatch`, reusable `workflow_call`, and a weekly scheduled drift check. It validates JSON/YAML syntax, restores and builds the .NET 10 solution, runs the contract-test executable, and smoke-tests the demo. The manual `run_demo` input can skip only the demo step.
 
-See [CI automation and activation](docs/architecture/ci-automation.md) for how to enable it in GitHub and optionally require its status check before merging. The workflow is read-only and does not auto-merge or deploy. This local change has not yet been published to GitHub, so no remote Actions run is claimed.
+See [CI automation and activation](docs/architecture/ci-automation.md) for branch protection and status-check requirements. The workflow is read-only and does not auto-merge or deploy. A successful branch build is not an independent semantic checker verdict or production promotion grant.
