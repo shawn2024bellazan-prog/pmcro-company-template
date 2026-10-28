@@ -1,0 +1,31 @@
+apiVersion: pmcro.dev/v1
+kind: TrailProduct
+metadata:
+  name: trail-auditor
+  version: 0.1.0
+  description: Evaluate Trail integrity, completeness, policy decisions, and evidence coverage.
+  owner: pmcro-platform
+  labels:
+    domain: governance
+    maturity: experimental
+extends: trail-product/base
+policyRefs:
+  - policy/tenant-isolation
+  - policy/evidence-redaction
+  - policy/audit-read-only
+spec:
+  entrypoint: capability://trail.audit
+  inputs:
+    trailRef:
+      type: string
+      required: true
+  outputs:
+    reportRef:
+      type: string
+  permissions:
+    - trail.read
+    - report.write
+  acceptance:
+    - every finding references one or more frame IDs
+    - no source Trail frame is mutated
+    - report includes schema and policy version

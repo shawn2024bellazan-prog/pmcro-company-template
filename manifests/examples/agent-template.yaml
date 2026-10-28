@@ -1,0 +1,23 @@
+apiVersion: pmcro.dev/v1
+kind: AgentTemplate
+metadata:
+  name: checker-readonly
+  version: 0.1.0
+  description: Generic independent checker with read-only evidence access.
+extends: agent/base
+policyRefs:
+  - policy/agent-read-only
+spec:
+  role: checker
+  instructionRef: prompt://checker/default
+  tools:
+    allow:
+      - trail.read
+      - artifact.read
+      - test.inspect
+    deny:
+      - repository.write
+      - deployment.execute
+      - secret.read
+  outputContract: contract://check-result/v1
+  requireIndependentIdentity: true

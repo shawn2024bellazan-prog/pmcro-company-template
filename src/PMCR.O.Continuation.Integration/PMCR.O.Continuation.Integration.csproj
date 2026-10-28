@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../PMCR.O.Core/PMCR.O.Core.csproj" />
+    <ProjectReference Include="../PMCR.O.Continuation.Plugin/PMCR.O.Continuation.Plugin.csproj" />
+  </ItemGroup>
+</Project>

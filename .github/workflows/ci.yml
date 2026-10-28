@@ -1,0 +1,87 @@
+name: PMCR-O CI
+
+# Runs automatically for normal development, can be called by another workflow,
+# and can be started manually from the GitHub Actions tab.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_demo:
+        description: "Run the demo smoke test"
+        required: false
+        default: true
+        type: boolean
+  workflow_call:
+  schedule:
+    - cron: "23 8 * * 1" # Weekly drift check, Monday at 08:23 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pmcro-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-build-test:
+    name: Validate, build, and test (.NET 10)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate all JSON files
+        shell: bash
+        run: |
+          python - <<'PYJSON'
+          import json
+          from pathlib import Path
+          files = sorted(Path('.').rglob('*.json'))
+          if not files:
+              raise SystemExit('No JSON files found')
+          for path in files:
+              json.loads(path.read_text(encoding='utf-8'))
+              print(f'Validated {path}')
+          print(f'Validated {len(files)} JSON files')
+          PYJSON
+
+      - name: Validate declarative YAML syntax
+        shell: bash
+        run: |
+          ruby - <<'RUBY'
+          require 'yaml'
+          files = Dir.glob('**/*.{yaml,yml}', File::FNM_EXTGLOB).sort
+          abort 'No YAML files found' if files.empty?
+          files.each do |path|
+            YAML.safe_load_file(path, permitted_classes: [], permitted_symbols: [], aliases: false)
+            puts "Validated #{path}"
+          end
+          puts "Validated #{files.length} YAML files"
+          RUBY
+
+      - name: Restore dependencies
+        run: dotnet restore PMCR-O.sln
+
+      - name: Build solution
+        run: dotnet build PMCR-O.sln --configuration Release --no-restore
+
+      - name: Run core contract tests
+        run: dotnet run --project tests/PMCR.O.Core.Tests/PMCR.O.Core.Tests.csproj --configuration Release --no-build
+
+      - name: Run continuation contract tests
+        run: dotnet run --project tests/PMCR.O.Continuation.Tests/PMCR.O.Continuation.Tests.csproj --configuration Release --no-build
+
+      - name: Run application integration contract tests
+        run: dotnet run --project tests/PMCR.O.Continuation.Integration.Tests/PMCR.O.Continuation.Integration.Tests.csproj --configuration Release --no-build
+
+      - name: Run demo smoke test
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_demo }}
+        run: dotnet run --project src/PMCR.O.Demo/PMCR.O.Demo.csproj --configuration Release --no-build

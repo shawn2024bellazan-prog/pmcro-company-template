@@ -1,0 +1,33 @@
+[
+  {
+    "routeId": "route.trail.audit",
+    "commandType": "trail.audit",
+    "capabilityId": "trail-auditor",
+    "skillId": "pmcro.trail.audit",
+    "versionConstraint": "^1.0",
+    "enabled": false,
+    "policyRef": "policy.capability.invoke",
+    "requiredPermissions": [
+      "trail.read"
+    ],
+    "metadata": {
+      "status": "example-disabled-until-capability-is-validated-and-approved",
+      "source": "template"
+    }
+  },
+  {
+    "routeId": "route.continuation.return",
+    "commandType": "pmcro.continuation.return",
+    "capabilityId": "pmcro.continuation",
+    "skillId": "pmcro.continuation.application-adapter",
+    "versionConstraint": "0.1.0",
+    "enabled": false,
+    "policyRef": "pmcro.policy.continuation",
+    "requiredPermissions": ["pmcro.continuation.invoke"],
+    "metadata": {
+      "interfaceKind": "Plugin",
+      "status": "disabled-pending-independent-check-and-runtime-grant",
+      "source": "plugins/pmcro.continuation/plugin.json"
+    }
+  }
+]

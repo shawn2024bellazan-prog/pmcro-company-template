@@ -1,0 +1,38 @@
+[
+  {
+    "capabilityId": "example.trail-auditor",
+    "name": "Trail Auditor example",
+    "version": "0.1.0",
+    "interfaceKind": "Skill",
+    "sourceId": "local-catalog",
+    "status": "Discovered",
+    "entryPoint": "capability://trail.audit",
+    "license": "NOASSERTION",
+    "provenance": "repository:manifests/capability-registrations/examples.json",
+    "dependencies": [],
+    "requiredPermissions": [],
+    "policyRef": "policy/read-only",
+    "contentDigest": null,
+    "validatedBy": null,
+    "validatedAt": null,
+    "notes": "Example registration only; not installed or executable."
+  },
+  {
+    "capabilityId": "pmcro.continuation",
+    "name": "Caller-returned continuation plugin (candidate)",
+    "version": "0.1.0",
+    "interfaceKind": "Plugin",
+    "sourceId": "local-catalog",
+    "status": "Discovered",
+    "entryPoint": "assembly://PMCR.O.Continuation.Plugin/PMCR.O.Continuation.Plugin.ContinuationPlugin",
+    "license": "NOASSERTION",
+    "provenance": "repository:plugins/pmcro.continuation/plugin.json",
+    "dependencies": ["PMCR.O.Continuation", "PMCR.O.Core"],
+    "requiredPermissions": ["pmcro.continuation.invoke"],
+    "policyRef": "pmcro.policy.continuation",
+    "contentDigest": null,
+    "validatedBy": null,
+    "validatedAt": null,
+    "notes": "Discovery only. Plugin and application route are disabled; no host activation or execution grant is supplied."
+  }
+]

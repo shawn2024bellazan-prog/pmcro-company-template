@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PMCR-O Skill Route",
+  "type": "object",
+  "required": [
+    "routeId",
+    "commandType",
+    "capabilityId",
+    "skillId",
+    "versionConstraint",
+    "enabled",
+    "policyRef",
+    "requiredPermissions",
+    "metadata"
+  ],
+  "properties": {
+    "routeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commandType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capabilityId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skillId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "versionConstraint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "policyRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requiredPermissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

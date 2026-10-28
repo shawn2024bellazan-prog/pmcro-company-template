@@ -1,0 +1,52 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.operation",
+  "command": "@maker /pmcro:make integrate_continuation_with_application",
+  "actor": "maker",
+  "run_id": "derived-make-continuation-application-2026-10-28",
+  "run_id_kind": "derived",
+  "branch": "feat/pmcro-activation",
+  "prior_branch_head": "08ecb16488b66510eccb232f0cf96644d3fd80fb",
+  "parent_artifact": "pmcro.company-template",
+  "child_artifact": "pmcro.continuation.integration",
+  "source": {
+    "filename": "pmcro-activation-kit-increments-1-to-19.zip",
+    "sha256": "003bb927a7f7e2a4128e907cffcbbbd7c27b0cadda71a99b7dd9040c10f5bcce",
+    "nested_archives": 19,
+    "nested_integrity": "passed",
+    "publisher_attestation": "not_available"
+  },
+  "status": "candidate",
+  "evidence": {
+    "plan": "docs/decisions/0005-continuation-application-make-plan.md",
+    "architecture": "docs/architecture/continuation-application-integration.md",
+    "adapter": "src/PMCR.O.Continuation.Integration/ApplicationContinuationHandler.cs",
+    "tests": "tests/PMCR.O.Continuation.Integration.Tests/Program.cs",
+    "governance_manifest": "manifests/skill-routes/catalog.json",
+    "solution": "PMCR-O.sln",
+    "workflow": ".github/workflows/ci.yml"
+  },
+  "verification": {
+    "local_static_review": "pending",
+    "combined_dotnet_build": "pending_ci",
+    "combined_contract_tests": "pending_ci",
+    "independent_semantic_checker": "pending",
+    "production_adapters": "not_implemented"
+  },
+  "authorization": {
+    "source_import_and_feature_branch_make": true,
+    "plugin_activation": false,
+    "merge_to_main": false,
+    "production_deployment": false,
+    "inherited_authority": false
+  },
+  "promotion": "generated",
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "verify_combined_continuation_application",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}

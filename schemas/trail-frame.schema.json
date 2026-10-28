@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pmcr-o.example/schemas/trail-frame.schema.json",
+  "title": "PMCR-O Enterprise Trail Frame",
+  "description": "Portable evidence and governance envelope shared by PMCR-O products. Do not place secrets or unnecessary personal data in fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "organizationId", "projectId", "intentId", "runId", "agentId", "correlationId", "frameId", "sequence", "causalFrameIds", "timestamp", "originalSeed", "refinedObjective", "constraints", "phase", "capability", "action", "status", "evidenceRefs", "policyId", "authorizationDecision", "checkerVerdict", "reflection", "corrections", "objectiveComplete", "learningStatus", "provenance", "reuseEligible"],
+  "properties": {
+    "schemaVersion": {"type":"string", "minLength":1}, "organizationId":{"type":"string","minLength":1}, "projectId":{"type":"string","minLength":1}, "intentId":{"type":"string","minLength":1}, "runId":{"type":"string","minLength":1}, "agentId":{"type":"string","minLength":1}, "correlationId":{"type":"string","minLength":1}, "frameId":{"type":"string","minLength":1}, "sequence":{"type":"integer","minimum":1}, "parentFrameId":{"type":["string","null"]}, "causalFrameIds":{"type":"array","items":{"type":"string","minLength":1}}, "timestamp":{"type":"string","format":"date-time"}, "originalSeed":{"type":"string","minLength":1}, "refinedObjective":{"type":"string","minLength":1}, "constraints":{"type":"array","items":{"type":"string"}}, "nextSeed":{"type":["string","null"]}, "phase":{"type":"string","minLength":1}, "capability":{"type":"string","minLength":1}, "action":{"type":"string","minLength":1}, "status":{"type":"string","minLength":1}, "evidenceRefs":{"type":"array","items":{"type":"string","minLength":1}}, "policyId":{"type":"string","minLength":1}, "authorizationDecision":{"enum":["allow","require_approval","deny","not_applicable"]}, "approvalRef":{"type":["string","null"]}, "checkerVerdict":{"type":"string","minLength":1}, "reflection":{"type":"string"}, "corrections":{"type":"array","items":{"type":"string"}}, "objectiveComplete":{"type":"boolean"}, "proposedLesson":{"type":["string","null"]}, "learningStatus":{"enum":["observation","proposed","validated","approved","rejected"]}, "confidence":{"type":["number","null"],"minimum":0,"maximum":1}, "provenance":{"type":"string","minLength":1}, "reuseEligible":{"type":"boolean"}, "payloadDigest":{"type":["string","null"]}
+  },
+  "$comment": "Cross-field rules (e.g. reuseEligible requires validated/approved, and require_approval needs approvalRef) are enforced by the application validator. This schema does not claim tamper-proof storage."
+}

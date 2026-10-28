@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+.vs/
+.vscode/
+.env
+.env.*
+!.env.example
+.pmcro/trails/*
+!.pmcro/trails/.gitkeep
+*.user
+*.suo
+
+.pmcro/intent-queue.json
+.pmcro/intent-queue.json.tmp

@@ -1,0 +1,31 @@
+apiVersion: pmcro.dev/v1
+kind: EnterpriseProfile
+metadata:
+  name: baseline-enterprise
+  version: 0.1.0
+  description: Tenant-safe defaults for a new PMCR-O organization.
+extends: enterprise/base
+policyRefs:
+  - policy/deny-by-default
+  - policy/tenant-isolation
+  - policy/approval-required-for-production
+  - policy/secret-redaction
+spec:
+  tenancy:
+    mode: organization-project
+    requireOrganizationId: true
+    requireProjectId: true
+  trails:
+    schemaVersion: "1.0"
+    payloadMode: external-protected-reference
+    retentionClass: standard-audit
+    integrityMode: digest-chain
+  autonomy:
+    unknownRisk: require_approval
+    maxCycleDepth: 4
+    requireIndependentCheckerForSelfModification: true
+    requireRollbackPlanForSelfModification: true
+  operations:
+    requireCorrelationId: true
+    requireEvidenceForCompletion: true
+    deploymentApproval: required

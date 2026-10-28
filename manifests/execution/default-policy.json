@@ -1,0 +1,20 @@
+{
+  "policyId": "execution.default.v1",
+  "capabilityId": "*",
+  "timeoutSeconds": 120,
+  "maxAttempts": 3,
+  "initialBackoffMilliseconds": 250,
+  "maxBackoffSeconds": 15,
+  "maxEvidenceLength": 512,
+  "requireReconciliationForUnknownNonIdempotentOutcome": true,
+  "allowAutomaticRetryForIdempotentOperations": true,
+  "redactFieldNames": [
+    "password",
+    "secret",
+    "client_secret",
+    "access_token",
+    "refresh_token",
+    "api_key",
+    "authorization"
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pmcro.example/schemas/component-manifest.schema.json",
+  "title": "PMCR-O Declarative Component Manifest",
+  "description": "Portable declarative contract for agents, workflows, Trail products, and enterprise deployments. Runtime policy remains authoritative.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "AgentTemplate",
+        "WorkflowTemplate",
+        "TrailProduct",
+        "EnterpriseProfile",
+        "CapabilityPack"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]*$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "owner": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "description": "Kind-specific declarative component specification. Protocol declarations describe transport and capabilities; they never grant runtime permissions.",
+      "properties": {
+        "protocols": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "role"
+            ],
+            "properties": {
+              "name": {
+                "enum": [
+                  "a2a",
+                  "mcp",
+                  "openapi",
+                  "cloud-events",
+                  "http-json"
+                ]
+              },
+              "role": {
+                "enum": [
+                  "client",
+                  "server",
+                  "both"
+                ]
+              },
+              "version": {
+                "type": "string"
+              },
+              "endpointRef": {
+                "type": "string",
+                "description": "Reference to a secret-safe endpoint configuration; do not put credentials here."
+              },
+              "capabilities": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "authRef": {
+                "type": "string",
+                "description": "Reference to externally managed authentication configuration."
+              },
+              "trustPolicyRef": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "runtime": {
+          "type": "object"
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "outputs": {
+          "type": "object"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "policyRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "extends": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pmcro.dev/schemas/capability.schema.json",
+  "title": "PMCR-O Capability Registration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["capabilityId", "name", "version", "interfaceKind", "sourceId", "status", "license", "provenance", "dependencies", "requiredPermissions", "policyRef"],
+  "properties": {
+    "capabilityId": {"type":"string","minLength":1},
+    "name": {"type":"string","minLength":1},
+    "version": {"type":"string","minLength":1},
+    "interfaceKind": {"enum":["Skill","McpTool","McpResource","A2AAgent","OpenApiService","HttpService","Plugin","Script","Library","Workflow","Unknown"]},
+    "sourceId": {"type":"string","minLength":1},
+    "status": {"enum":["Discovered","Available","Validated","Approved","Executable","Disabled"]},
+    "entryPoint": {"type":["string","null"]},
+    "license": {"type":"string","minLength":1},
+    "provenance": {"type":"string","minLength":1},
+    "dependencies": {"type":"array","items":{"type":"string"},"uniqueItems":true},
+    "requiredPermissions": {"type":"array","items":{"type":"string"},"uniqueItems":true},
+    "policyRef": {"type":"string","minLength":1},
+    "contentDigest": {"type":["string","null"]},
+    "validatedBy": {"type":["string","null"]},
+    "validatedAt": {"type":["string","null"],"format":"date-time"},
+    "notes": {"type":["string","null"]}
+  },
+  "$comment": "Schema shape does not itself grant trust, approval, or execution. Runtime policy and evidence validation remain authoritative."
+}

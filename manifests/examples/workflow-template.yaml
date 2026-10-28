@@ -1,0 +1,31 @@
+apiVersion: pmcro.dev/v1
+kind: WorkflowTemplate
+metadata:
+  name: verified-delivery
+  version: 0.1.0
+  description: Reusable plan-make-check-reflect delivery workflow.
+extends: workflow/pmcro-cycle
+policyRefs:
+  - policy/deny-by-default
+  - policy/approval-required-for-production
+spec:
+  trigger: intent.accepted
+  stages:
+    - id: plan
+      capability: planning.default
+    - id: authorize
+      capability: governance.authorize
+    - id: make
+      capability: execution.authorized
+      requires: authorize.allow
+    - id: check
+      capability: verification.independent
+    - id: reflect
+      capability: reflection.constrained
+  completion:
+    requireCheckerPass: true
+    requireAcceptanceCriteria: true
+    requireEvidenceRefs: true
+  budgets:
+    maxCycles: 5
+    maxParallelSteps: 3

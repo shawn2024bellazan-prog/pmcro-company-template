@@ -1,0 +1,34 @@
+apiVersion: pmcro/v1
+kind: AgentTemplate
+metadata:
+  name: research-agent
+  version: 0.1.0
+  description: Example agent exposed through A2A and optionally connected to MCP tools
+  owner: pmcro-platform
+spec:
+  protocols:
+    - name: a2a
+      role: server
+      version: "1.0"
+      endpointRef: endpoints.research-agent.a2a
+      capabilities: ["agent-card", "tasks", "streaming"]
+      authRef: auth.enterprise-agent-identity
+      trustPolicyRef: policies.agent-to-agent.default
+      enabled: true
+    - name: mcp
+      role: client
+      version: "pinned-by-runtime"
+      endpointRef: endpoints.research-tools.mcp
+      capabilities: ["tools", "resources"]
+      authRef: auth.mcp-tool-identity
+      trustPolicyRef: policies.tool-access.research-readonly
+      enabled: true
+  runtime:
+    adapter: microsoft-agent-framework
+    timeoutSeconds: 90
+    maxConcurrentTasks: 4
+  policies:
+    - policies.least-privilege
+    - policies.egress.allowlisted
+policyRefs:
+  - policies.enterprise-default
