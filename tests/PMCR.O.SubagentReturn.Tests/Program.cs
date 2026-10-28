@@ -40,7 +40,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("durable completion closes result without seed", DurableNoSeed),
     ("durable seed defers without external dispatch and can restart", DurableSeedDeferred),
     ("transactional outbox reservation does not replay", OutboxReservation),
-    ("outbox uncertain requires external reconciliation", OutboxReconciliation)
+    ("outbox uncertain requires external reconciliation", OutboxReconciliation),
+    ("trusted Trail head anchor detects forgery", TrustedAnchorForgery)
 };
 
 var failures = 0;
@@ -675,6 +676,29 @@ static async Task OutboxReconciliation()
         "external-operation-001", dispatched: true);
     Require(resolved?.Status == DurableOutboxStatus.Dispatched &&
         resolved.ExternalOperationId == "external-operation-001", "external reconciliation failed");
+}
+
+static async Task TrustedAnchorForgery()
+{
+    var rig = await Rig.CreateAsync();
+    var db = Path.Combine(Path.GetTempPath(), "pmcro-anchored-" + Guid.NewGuid().ToString("N") + ".db");
+    var ledger = new SqliteHashChainedTrailLedger(db);
+    var anchor = new InMemoryTrustedTrailHeadAnchor();
+    var frames = await rig.Trails.ReadRunAsync(rig.Caller.RunId);
+    string head = "";
+    foreach (var frame in frames) head = await ledger.AppendAsync(frame);
+    Require(await anchor.CompareAndSetAsync(rig.Caller.RunId, null, head), "trusted head not recorded");
+    Require(await new TrustedTrailHeadVerifier(ledger, anchor).VerifyAsync(rig.Caller.RunId),
+        "valid anchored chain rejected");
+    Require(!await anchor.CompareAndSetAsync(rig.Caller.RunId, "forged", "sha256:fake"),
+        "forged prior head changed trusted anchor");
+    using var c = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=" + db);
+    c.Open();
+    using var cmd = c.CreateCommand();
+    cmd.CommandText = "UPDATE trail_ledger SET head_hash='sha256:fake' WHERE seq=1";
+    cmd.ExecuteNonQuery();
+    Require(!await new TrustedTrailHeadVerifier(ledger, anchor).VerifyAsync(rig.Caller.RunId),
+        "modified chain accepted against anchor");
 }
 
 static void Require(bool condition, string message)
