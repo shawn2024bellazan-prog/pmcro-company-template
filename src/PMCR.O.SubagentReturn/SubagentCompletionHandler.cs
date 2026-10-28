@@ -31,7 +31,7 @@ public sealed record SubagentReturnReceipt(
 /// <summary>Result of an independent checker proof established from governed evidence, never from the child's message.</summary>
 public sealed record CheckerAttestation(
     bool Verified, string CheckerAgentId, string? EvidenceFrameId = null,
-    string? EvidenceDigest = null, string? ResultDigest = null);
+    string? EvidenceDigest = null, string? ResultDigest = null, string? Signature = null);
 
 /// <summary>
 /// Host-owned verifier. A Trail frame match alone cannot authenticate a checker or its verdict.

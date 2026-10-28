@@ -34,7 +34,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("result digest mismatches cannot dispatch", ResultDigestMismatch),
     ("host checker proof gate cannot be bypassed", UntrustedProofGate),
     ("durable state survives a new store instance", DurableStateRestart),
-    ("durable compare and swap has one winner", DurableStateCas)
+    ("durable compare and swap has one winner", DurableStateCas),
+    ("HMAC checker proof binds identity and result", SignedCheckerProof)
 };
 
 var failures = 0;
@@ -567,6 +568,26 @@ static async Task DurableStateCas()
     var candidates = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
         new SqliteSubagentReturnStateStore(file).TryTransitionAsync("run-2", 1, DurableReturnState.Verified, "sha256:def")));
     Require(candidates.Count(x => x is not null) == 1, "multiple concurrent writers won");
+}
+
+static async Task SignedCheckerProof()
+{
+    var rig = await Rig.CreateAsync();
+    var result = rig.Completed();
+    var key = Enumerable.Range(0, 32).Select(x => (byte)(x + 17)).ToArray();
+    var authority = new HmacCheckerProofAuthority(key, new HashSet<string>(StringComparer.Ordinal) { "@checker" });
+    var digest = SubagentResultDigest.Compute(result.FinalResult!);
+    var attestation = authority.IssueForAuthenticatedChecker(
+        "@checker", "frame-checker", "sha256:test-proof", digest, rig.Caller.RunId, rig.Caller.CorrelationId);
+    rig.Checker.Attestation = attestation;
+    var receipt = await rig.Handler(proofVerifier: authority).HandleAsync(result, rig.Invocation(), rig.Grant());
+    Require(receipt.Status == SubagentReturnStatus.Completed, "valid host-issued proof rejected");
+
+    var forged = await Rig.CreateAsync();
+    var forgery = forged.Completed();
+    forged.Checker.Attestation = attestation with { Signature = "hmac-sha256:" + new string('0', 64) };
+    var denied = await forged.Handler(proofVerifier: authority).HandleAsync(forgery, forged.Invocation(), forged.Grant());
+    Require(denied.Status == SubagentReturnStatus.Deferred && forged.Dispatcher.Calls == 0, "forged signature accepted");
 }
 
 static void Require(bool condition, string message)
