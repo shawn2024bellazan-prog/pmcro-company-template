@@ -30,6 +30,10 @@ The PMCR-O directories under marketplaces/ contain PMCR-O candidate product mani
 VS Code agent plugins require recognized plugin metadata; portable Agent Skills use SKILL.md in a supported skill folder (here .agents/skills/download-action). This G skill follows native VS Code/Copilot discovery, while the G candidate PMCR-O marketplace points to it in its own schema.
 AGENTS.md supplies shared instructions. The candidate PMCR-O orchestrator role is NOT authenticated or activated by simply opening the workspace.
 
+## Ollama model setup
+
+The workspace enables VS Code's experimental BYOK model selection, but the device currently has no Ollama models installed (`ollama list` is empty). After the owner selects and downloads a tool-capable model, use **Chat: Manage Language Models** in Microsoft VS Code to add Ollama as a local provider and select the model for a supported agent harness. The PMCR-O candidate MCP server separately keeps `PMCRO_LOCAL_INFERENCE_ENABLED=false`; it cannot run workers, and local drafting must not be conflated with execution authority. Do not automatically pull a large model or enable model inference as part of marketplace discovery.
+
 ## Explicit non-automation
 
 No credentials are stored in settings.
