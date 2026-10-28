@@ -128,7 +128,7 @@ public sealed class CallerContinuationHandler
         return new ContinuationReceipt(status, code, caller.CorrelationId, message.NextSeed?.SeedId);
     }
 
-    private static string? Validate(CycleResultEnvelope message, CallerContext caller)
+    public static string? Validate(CycleResultEnvelope message, CallerContext caller)
     {
         if (!EqualsOrdinal(message.Schema, PmcrSchemas.CycleResult) ||
             !EqualsOrdinal(message.MessageType, "cycle.result"))
