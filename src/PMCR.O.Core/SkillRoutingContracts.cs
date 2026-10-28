@@ -61,7 +61,7 @@ public sealed class JsonSkillRouteCatalog : ISkillRouteCatalog
         if (!File.Exists(_path)) return Array.Empty<SkillRouteDefinition>();
         await using var stream = File.OpenRead(_path);
         return await System.Text.Json.JsonSerializer.DeserializeAsync<List<SkillRouteDefinition>>(stream, Options, cancellationToken)
-            ?? Array.Empty<SkillRouteDefinition>();
+            ?? new List<SkillRouteDefinition>();
     }
 
     public async Task ReplaceAsync(IReadOnlyList<SkillRouteDefinition> routes, CancellationToken cancellationToken = default)

@@ -77,10 +77,10 @@ public sealed class PmcroApplicationCommandRouter<TPayload, TResult>
             {
                 await _idempotency.ReleaseAsync(claim.ScopeKey, CancellationToken.None);
                 var evidence = result.EvidenceRefs.Concat(["contract:handler-returned-approval-after-dispatch"]).ToArray();
-                var frameId = await RecordAsync(command, "execution-contract-violation", "failed", "deny", evidence, "governance.handler-contract.review", CancellationToken.None);
+                var violationFrameId = await RecordAsync(command, "execution-contract-violation", "failed", "deny", evidence, "governance.handler-contract.review", CancellationToken.None);
                 return new("1.0", "msg-" + Guid.NewGuid().ToString("N"), command.CommandId, command.IntentId, command.RunId,
                     command.CorrelationId, command.CommandId, "failed", "HANDLER_APPROVAL_CONTRACT_VIOLATION", "A handler requested approval after dispatch began; result was blocked and requires handler correction.",
-                    DateTimeOffset.UtcNow, default, evidence, frameId, false);
+                    DateTimeOffset.UtcNow, default, evidence, violationFrameId, false);
             }
             await _idempotency.CompleteAsync(claim.ScopeKey, cancellationToken);
             var status = result.Status;

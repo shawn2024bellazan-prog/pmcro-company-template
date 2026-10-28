@@ -1,0 +1,41 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.correction",
+  "command": "@maker /pmcro:make integrate_continuation_with_application",
+  "run_id": "derived-make-continuation-application-2026-10-28",
+  "run_id_kind": "derived",
+  "branch": "feat/pmcro-activation",
+  "observed_failure": {
+    "commit": "332a52d4b1c6782cd5ba3ae7b78742b12eaf17fa",
+    "workflow_run": 40625642625,
+    "job": 122609760847,
+    "phase": "dotnet.build",
+    "compiler_errors": [
+      "CS0019: incompatible List<SkillRouteDefinition> and array operands of ??",
+      "CS0136: duplicate frameId variable in enclosing scope"
+    ]
+  },
+  "corrections": [
+    {
+      "path": "src/PMCR.O.Core/SkillRoutingContracts.cs",
+      "change": "use a List<SkillRouteDefinition> empty fallback matching deserializer type"
+    },
+    {
+      "path": "src/PMCR.O.Core/ApplicationCommandRouter.cs",
+      "change": "rename contract-violation frame variable without changing behavior"
+    }
+  ],
+  "status": "correction_candidate",
+  "verification": {
+    "combined_dotnet_build": "pending_new_ci",
+    "independent_semantic_checker": "pending"
+  },
+  "promotion": "generated",
+  "next_seed": {
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "verify_combined_continuation_application",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}
