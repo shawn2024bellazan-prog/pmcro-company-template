@@ -83,7 +83,8 @@ public static class SubagentReturnValidator
             !Eq(who.ParentFrameId, caller.ParentFrameId) || !Eq(who.SubagentRunId, invocation.SubagentRunId))
             return SubagentValidationResult.Untrusted("correlation_mismatch", SubagentFailureAttribution.Child);
 
-        if (!CanonicalMatches(who.Canonical, invocation.ExpectedContext))
+        if (!Eq(who.Role, invocation.ExpectedContext?.Role ?? "") ||
+            !CanonicalMatches(who.Canonical, invocation.ExpectedContext))
             return SubagentValidationResult.Untrusted("canonical_i_context_mismatch", SubagentFailureAttribution.Child);
 
         if (!Eq(returned.ReplyTo, caller.AgentId) || !Eq(returned.ReturnRoute, caller.ExpectedReturnRoute))

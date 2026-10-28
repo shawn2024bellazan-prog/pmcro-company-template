@@ -28,7 +28,11 @@ var tests = new (string Name, Func<Task> Run)[]
     ("canonical role spoofing denied", RoleSpoofing),
     ("canonical authority widening denied", AuthorityWidening),
     ("host terminal missing closes run", TerminalMissing),
-    ("checker evidence forgery rejected", ForgedCheckerEvidence)
+    ("checker evidence forgery rejected", ForgedCheckerEvidence),
+    ("checker outage recovers without losing terminal claim", CheckerOutageRecovery),
+    ("outer and canonical role must agree", ConflictingRoles),
+    ("result digest mismatches cannot dispatch", ResultDigestMismatch),
+    ("host checker proof gate cannot be bypassed", UntrustedProofGate)
 };
 
 var failures = 0;
@@ -498,6 +502,45 @@ static async Task ForgedCheckerEvidence()
     Require(result.ReasonCode == "checker_evidence_unverified" && rig.Dispatcher.Calls == 0, "fake checker evidence accepted");
 }
 
+static async Task CheckerOutageRecovery()
+{
+    var rig = await Rig.CreateAsync();
+    var handler = rig.Handler();
+    rig.Checker.Throw = true;
+    var blocked = await handler.HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(blocked.Status == SubagentReturnStatus.Deferred && rig.Dispatcher.Calls == 0, "outage did not defer");
+    rig.Checker.Throw = false;
+    var resumed = await handler.HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(resumed.Status == SubagentReturnStatus.Completed && rig.Dispatcher.Calls == 1, "verification could not resume");
+    var replay = await handler.HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(replay.Status == SubagentReturnStatus.Duplicate && rig.Dispatcher.Calls == 1, "duplicate dispatch");
+}
+
+static async Task ConflictingRoles()
+{
+    var rig = await Rig.CreateAsync();
+    var good = rig.Completed();
+    var changed = good with { IContext = good.IContext! with { Role = "administrator" } };
+    var receipt = await rig.Handler().HandleAsync(changed, rig.Invocation(), rig.Grant());
+    Require(receipt.ReasonCode == "canonical_i_context_mismatch" && rig.Dispatcher.Calls == 0, "role conflict accepted");
+}
+
+static async Task ResultDigestMismatch()
+{
+    var rig = await Rig.CreateAsync();
+    rig.Checker.Attestation = rig.Checker.Attestation! with { ResultDigest = "sha256:bad" };
+    var result = await rig.Handler().HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(result.ReasonCode == "checker_evidence_unverified" && rig.Dispatcher.Calls == 0, "mismatched result digest accepted");
+}
+
+static async Task UntrustedProofGate()
+{
+    var rig = await Rig.CreateAsync();
+    var receipt = await rig.Handler(proofVerifier: new UnconfiguredCheckerEvidenceVerifier())
+        .HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
+    Require(receipt.ReasonCode == "checker_proof_unverified" && rig.Dispatcher.Calls == 0, "unverified proof accepted");
+}
+
 static void Require(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException(message);
@@ -526,7 +569,7 @@ sealed class Rig
         var rig = new Rig();
         if (includeParent) await rig.Trails.AppendAsync(rig.Frame("frame-parent"));
         await rig.Trails.AppendAsync(rig.Frame("frame-source"));
-        await rig.Trails.AppendAsync(rig.Frame("frame-checker") with { AgentId = "@checker", PayloadDigest = "sha256:test-proof" });
+        await rig.Trails.AppendAsync(rig.Frame("frame-checker") with { AgentId = "@checker", PayloadDigest = "sha256:test-proof", CheckerVerdict = "PASS" });
         rig.Resolver.Binding = new TrustedSubagentBinding(rig.Invocation(), rig.Grant());
         return rig;
     }
@@ -540,7 +583,8 @@ sealed class Rig
     public SubagentCompletionHandler Handler(
         PluginManifest? manifest = null,
         ISubagentCheckerProof? checker = null,
-        ISeedClaimStore? claims = null)
+        ISeedClaimStore? claims = null,
+        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null)
     {
         var writer = new EnterpriseContinuationTrailWriter(Trails, HostContext);
         var verifier = new EnterpriseContinuationEvidenceVerifier(Trails, ContinuationProof);
@@ -548,7 +592,8 @@ sealed class Rig
             verifier, Policy, new InMemorySeedClaimStore(), Dispatcher, writer);
         return new SubagentCompletionHandler(
             manifest ?? LoadManifest(), claims ?? new InMemorySeedClaimStore(), checker ?? Checker,
-            continuation, new TrailFrameIntegration(Trails), new CallerFailureFrameFactory(HostContext));
+            continuation, new TrailFrameIntegration(Trails), new CallerFailureFrameFactory(HostContext),
+            proofVerifier ?? new FixtureAuthenticatedCheckerVerifier());
     }
 
     public PmcroApplicationCommandRouter<SubagentReturnEnvelope, SubagentReturnReceipt> Router() =>
@@ -598,6 +643,8 @@ sealed class Rig
             new PMCR.O.Continuation.CycleOutcome("reflect", "completed",
                 new CycleEvidence(["frame-parent", "frame-source"], verdict)),
             seed, true, "@maker", "next_seed.acceptance");
+        Checker.Attestation = Checker.Attestation is null ? null
+            : Checker.Attestation with { ResultDigest = SubagentResultDigest.Compute(final) };
         return new SubagentReturnEnvelope(
             SubagentReturnSchemas.SubagentReturn, SubagentReturnSchemas.MessageType, IAm(),
             "completed", null, Caller.AgentId, Caller.ExpectedReturnRoute, final);
@@ -616,6 +663,16 @@ sealed class Rig
         Corrections: [], ObjectiveComplete: false, ProposedLesson: null,
         LearningStatus: "observation", Confidence: null, Provenance: "test-fixture",
         ReuseEligible: false, PayloadDigest: null);
+}
+
+sealed class FixtureAuthenticatedCheckerVerifier : IAuthenticatedCheckerEvidenceVerifier
+{
+    public Task<bool> VerifyAsync(CheckerAttestation a, SubagentReturnEnvelope r,
+        TrustedSubagentInvocation i, EnterpriseTrailFrame frame, CancellationToken ct) =>
+        Task.FromResult(frame.CheckerVerdict == "PASS" &&
+            frame.FrameId == "frame-checker" && frame.Provenance == "test-fixture" &&
+            a.CheckerAgentId == "@checker" &&
+            a.ResultDigest == SubagentResultDigest.Compute(r.FinalResult!));
 }
 
 sealed class FakeSubagentChecker : ISubagentCheckerProof

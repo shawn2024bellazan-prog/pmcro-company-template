@@ -1,4 +1,7 @@
 using PMCR.O.Continuation;
+using PMCR.O.Core;
+using System.Security.Cryptography;
+using System.Text.Json;
 using PMCR.O.Continuation.Plugin;
 
 namespace PMCR.O.SubagentReturn;
@@ -26,7 +29,35 @@ public sealed record SubagentReturnReceipt(
     ContinuationReceipt? Continuation);
 
 /// <summary>Result of an independent checker proof established from governed evidence, never from the child's message.</summary>
-public sealed record CheckerAttestation(bool Verified, string CheckerAgentId, string? EvidenceFrameId = null, string? EvidenceDigest = null);
+public sealed record CheckerAttestation(
+    bool Verified, string CheckerAgentId, string? EvidenceFrameId = null,
+    string? EvidenceDigest = null, string? ResultDigest = null);
+
+/// <summary>
+/// Host-owned verifier. A Trail frame match alone cannot authenticate a checker or its verdict.
+/// Production implementations must validate immutable provenance and signed result-bound evidence.
+/// The unconfigured default denies all proofs.
+/// </summary>
+public interface IAuthenticatedCheckerEvidenceVerifier
+{
+    Task<bool> VerifyAsync(
+        CheckerAttestation attestation, SubagentReturnEnvelope returned,
+        TrustedSubagentInvocation invocation, EnterpriseTrailFrame frame,
+        CancellationToken cancellationToken);
+}
+
+public sealed class UnconfiguredCheckerEvidenceVerifier : IAuthenticatedCheckerEvidenceVerifier
+{
+    public Task<bool> VerifyAsync(CheckerAttestation attestation, SubagentReturnEnvelope returned,
+        TrustedSubagentInvocation invocation, EnterpriseTrailFrame frame,
+        CancellationToken cancellationToken) => Task.FromResult(false);
+}
+
+public static class SubagentResultDigest
+{
+    public static string Compute(CycleResultEnvelope result) =>
+        "sha256:" + Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(result))).ToLowerInvariant();
+}
 
 /// <summary>
 /// Implementations must verify a checker identity independent of the maker (the subagent)
@@ -62,6 +93,7 @@ public sealed class SubagentCompletionHandler
     private readonly IReadOnlyList<string> _manifestErrors;
     private readonly ISeedClaimStore _claims;
     private readonly ISubagentCheckerProof _checker;
+    private readonly IAuthenticatedCheckerEvidenceVerifier _proofVerifier;
     private readonly CallerContinuationHandler _continuation;
     private readonly TrailFrameIntegration _trail;
     private readonly CallerFailureFrameFactory _frames;
@@ -72,11 +104,13 @@ public sealed class SubagentCompletionHandler
         ISubagentCheckerProof checker,
         CallerContinuationHandler continuation,
         TrailFrameIntegration trail,
-        CallerFailureFrameFactory frames)
+        CallerFailureFrameFactory frames,
+        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null)
     {
         _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
         _claims = claims ?? throw new ArgumentNullException(nameof(claims));
         _checker = checker ?? throw new ArgumentNullException(nameof(checker));
+        _proofVerifier = proofVerifier ?? new UnconfiguredCheckerEvidenceVerifier();
         _continuation = continuation ?? throw new ArgumentNullException(nameof(continuation));
         _trail = trail ?? throw new ArgumentNullException(nameof(trail));
         _frames = frames ?? throw new ArgumentNullException(nameof(frames));
@@ -138,9 +172,13 @@ public sealed class SubagentCompletionHandler
             return await ConcludeAsync(invocation, SubagentReturnStatus.Rejected, validation.ReasonCode,
                 validation.Attribution);
 
-        var duplicate = await ClaimOrConcludeAsync(invocation, cancellationToken);
-        if (duplicate is not null)
-            return duplicate;
+        // Non-completed or malformed terminal outcomes close their own run immediately.
+        // Completed returns are claimed only after independent proof has been verified.
+        if (!validation.IsValid || returned.LifecycleState != SubagentLifecycleStates.Completed)
+        {
+            var terminalClaim = await ClaimOrConcludeAsync(invocation, cancellationToken);
+            if (terminalClaim is not null) return terminalClaim;
+        }
 
         if (!validation.IsValid)
             return await ConcludeAsync(
@@ -203,11 +241,30 @@ public sealed class SubagentCompletionHandler
             string.IsNullOrWhiteSpace(attestation.EvidenceDigest))
             return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_evidence_missing", SubagentFailureAttribution.Host);
         var checkerFrames = await _trail.ReadCorrelatedAsync(invocation.Caller, cancellationToken);
-        if (!checkerFrames.Any(frame =>
+        var proofFrame = checkerFrames.SingleOrDefault(frame =>
             string.Equals(frame.FrameId, attestation.EvidenceFrameId, StringComparison.Ordinal) &&
             string.Equals(frame.AgentId, attestation.CheckerAgentId, StringComparison.Ordinal) &&
-            string.Equals(frame.PayloadDigest, attestation.EvidenceDigest, StringComparison.Ordinal)))
+            string.Equals(frame.PayloadDigest, attestation.EvidenceDigest, StringComparison.Ordinal) &&
+            string.Equals(frame.CheckerVerdict, "PASS", StringComparison.Ordinal));
+        if (proofFrame is null ||
+            !string.Equals(attestation.ResultDigest, SubagentResultDigest.Compute(final), StringComparison.Ordinal))
             return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_evidence_unverified", SubagentFailureAttribution.Host);
+
+        bool authenticated;
+        try
+        {
+            authenticated = await _proofVerifier.VerifyAsync(attestation, returned, invocation, proofFrame, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception)
+        {
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_proof_unavailable", SubagentFailureAttribution.Host);
+        }
+        if (!authenticated)
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_proof_unverified", SubagentFailureAttribution.Host);
+
+        var executionClaim = await ClaimOrConcludeAsync(invocation, cancellationToken);
+        if (executionClaim is not null) return executionClaim;
 
         // The handoff proposal (next seed) is evaluated by the caller's existing continuation
         // handler: lineage, evidence, current policy, budgets and atomic idempotency all apply.
