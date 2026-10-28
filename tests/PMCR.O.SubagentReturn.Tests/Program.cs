@@ -35,7 +35,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("host checker proof gate cannot be bypassed", UntrustedProofGate),
     ("durable state survives a new store instance", DurableStateRestart),
     ("durable compare and swap has one winner", DurableStateCas),
-    ("HMAC checker proof binds identity and result", SignedCheckerProof)
+    ("HMAC checker proof binds identity and result", SignedCheckerProof),
+    ("hash-linked SQLite trail detects tampering", HashTrailIntegrity)
 };
 
 var failures = 0;
@@ -588,6 +589,24 @@ static async Task SignedCheckerProof()
     forged.Checker.Attestation = attestation with { Signature = "hmac-sha256:" + new string('0', 64) };
     var denied = await forged.Handler(proofVerifier: authority).HandleAsync(forgery, forged.Invocation(), forged.Grant());
     Require(denied.Status == SubagentReturnStatus.Deferred && forged.Dispatcher.Calls == 0, "forged signature accepted");
+}
+
+static async Task HashTrailIntegrity()
+{
+    var rig = await Rig.CreateAsync();
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-hashtrail-" + Guid.NewGuid().ToString("N") + ".db");
+    var ledger = new SqliteHashChainedTrailLedger(file);
+    var frames = await rig.Trails.ReadRunAsync(rig.Caller.RunId);
+    string? head = null;
+    foreach (var f in frames) head = await ledger.AppendAsync(f);
+    Require(await new SqliteHashChainedTrailLedger(file).VerifyAsync(rig.Caller.RunId, head),
+        "hash trail failed roundtrip after restart");
+    using var c = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=" + file);
+    c.Open();
+    using var cmd = c.CreateCommand();
+    cmd.CommandText = "UPDATE trail_ledger SET payload='tampered' WHERE seq=1";
+    cmd.ExecuteNonQuery();
+    Require(!await ledger.VerifyAsync(rig.Caller.RunId, head), "tampered payload was accepted");
 }
 
 static void Require(bool condition, string message)
