@@ -1,0 +1,77 @@
+{
+  "$schema": "../../schemas/pmcro-plugin.schema.json",
+  "schema": "pmcro.plugin.v1",
+  "artifactId": "pmcro.continuation",
+  "artifactType": "plugin",
+  "version": "0.1.0",
+  "parent": {
+    "artifactId": "pmcro.company-template",
+    "runId": "derived-make-continuation-plugin-2026-10-28",
+    "idKind": "derived",
+    "depth": 1,
+    "maxDepth": 1
+  },
+  "owner": {
+    "principal": "shawn2024bellazan-prog",
+    "domainId": "pmcro",
+    "charterId": "pmcro.governance.draft"
+  },
+  "template": {
+    "templateId": "pmcro.declarative-plugin",
+    "version": 1
+  },
+  "sourceMarketplaces": [],
+  "children": [],
+  "requiredShape": {
+    "skillMd": false,
+    "agentFile": false,
+    "scripts": true,
+    "references": true,
+    "assets": false,
+    "tests": true
+  },
+  "entrypoint": {
+    "assembly": "PMCR.O.Continuation.Plugin",
+    "type": "PMCR.O.Continuation.Plugin.ContinuationPlugin"
+  },
+  "routes": [
+    {
+      "path": "/pmcro:next-seed",
+      "operation": "next_seed.return",
+      "target": "@orchestrator",
+      "policyRef": "pmcro.policy.continuation",
+      "permissions": ["pmcro.continuation.invoke"]
+    },
+    {
+      "path": "/pmcro:continue",
+      "operation": "next_seed.return",
+      "target": "@orchestrator",
+      "policyRef": "pmcro.policy.continuation",
+      "permissions": ["pmcro.continuation.invoke"]
+    }
+  ],
+  "contracts": ["pmcro.cycle-result.v1", "pmcro.next-seed.v1"],
+  "dependencies": [{ "artifactId": "PMCR.O.Continuation", "kind": "assembly", "version": "source-commit" }],
+  "governance": {
+    "enabledByDefault": false,
+    "approvalRequired": true,
+    "trailRequired": true,
+    "policyRef": "pmcro.policy.continuation"
+  },
+  "execution": {
+    "maxDepth": 5,
+    "retryLimit": 2,
+    "idempotencyRequired": true
+  },
+  "training": { "sourceRefs": [], "redactionRefs": [], "consent": "required", "status": "none" },
+  "evidence": { "tier": "unknown", "verificationRefs": [] },
+  "promotion": "generated",
+  "nextSeed": {
+    "returnTo": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "validate_continuation_plugin",
+    "state": "proposed",
+    "inheritedAuthority": false
+  }
+}

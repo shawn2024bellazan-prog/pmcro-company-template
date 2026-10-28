@@ -1,0 +1,25 @@
+{
+  "schema": "pmcro.marketplace-sources.v1",
+  "status": "reference-catalog-only",
+  "policy": "Discovery does not imply installation, approval, credentials, or execution.",
+  "sources": [
+    { "id": "github-marketplace", "kind": "app-marketplace", "status": "identified", "adapter": "not-implemented" },
+    { "id": "vscode-marketplace", "kind": "extension-marketplace", "status": "identified", "adapter": "not-implemented" },
+    { "id": "github-repositories", "kind": "git-repository-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "other-git-repositories", "kind": "git-repository-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "local-skill-folders", "kind": "skill-md-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "community-skill-registries", "kind": "skill-md-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "organization-private-registries", "kind": "private-capability-registry", "status": "identified", "adapter": "not-implemented" },
+    { "id": "mcp-tool-registries", "kind": "mcp-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "configured-mcp-servers", "kind": "mcp-server-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "a2a-agent-directories", "kind": "agent-directory", "status": "identified", "adapter": "not-implemented" },
+    { "id": "openapi-service-catalogs", "kind": "service-api-catalog", "status": "identified", "adapter": "not-implemented" },
+    { "id": "nuget", "kind": "dotnet-package-registry", "status": "candidate", "adapter": "not-implemented" },
+    { "id": "dotnet-template-sources", "kind": "dotnet-template-catalog", "status": "candidate", "adapter": "not-implemented" },
+    { "id": "oci-artifact-registries", "kind": "artifact-registry", "status": "candidate", "adapter": "not-implemented" },
+    { "id": "npm", "kind": "javascript-package-registry", "status": "candidate", "adapter": "not-implemented" },
+    { "id": "pypi", "kind": "python-package-registry", "status": "candidate", "adapter": "not-implemented" }
+  ],
+  "lifecycle": ["discovered", "available", "validated", "approved", "executable", "disabled"],
+  "executionEnabled": false
+}

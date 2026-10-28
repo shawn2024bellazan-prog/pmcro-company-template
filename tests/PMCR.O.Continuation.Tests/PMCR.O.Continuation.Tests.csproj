@@ -8,5 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/PMCR.O.Continuation/PMCR.O.Continuation.csproj" />
+    <ProjectReference Include="../../src/PMCR.O.Continuation.Plugin/PMCR.O.Continuation.Plugin.csproj" />
+    <None Include="../../plugins/pmcro.continuation/plugin.json" Link="plugin.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

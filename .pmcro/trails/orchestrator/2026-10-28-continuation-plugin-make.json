@@ -1,0 +1,40 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.operation",
+  "command": "@maker /pmcro:make package_continuation_as_plugin",
+  "actor": "maker",
+  "parent_artifact": "pmcro.company-template",
+  "child_artifact": "pmcro.continuation",
+  "run_id": "derived-make-continuation-plugin-2026-10-28",
+  "run_id_kind": "derived",
+  "depth": 1,
+  "max_depth": 1,
+  "branch": "feat/pmcro-activation",
+  "status": "candidate",
+  "evidence": {
+    "manifest": "plugins/pmcro.continuation/plugin.json",
+    "schema": "schemas/pmcro-plugin.schema.json",
+    "adapter": "src/PMCR.O.Continuation.Plugin/ContinuationPlugin.cs",
+    "tests": "tests/PMCR.O.Continuation.Tests/Program.cs",
+    "marketplace_catalog": "manifests/marketplace-sources.json",
+    "plan": "docs/decisions/0003-continuation-plugin-make-plan.md"
+  },
+  "verification": {
+    "json_xml_syntax": "passed_local_parser_checks",
+    "semantic_manifest_validation": "static_invariants_passed_runtime_checks_not_run",
+    "dotnet_build": "not_run_sdk_unavailable",
+    "contract_tests": "20_written_not_run_sdk_unavailable",
+    "validation_script": "not_run_pwsh_unavailable",
+    "independent_checker": "pending",
+    "external_marketplaces": "reference_only"
+  },
+  "promotion": "generated",
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "validate_continuation_plugin",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}

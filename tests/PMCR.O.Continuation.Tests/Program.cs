@@ -1,4 +1,5 @@
 using PMCR.O.Continuation;
+using PMCR.O.Continuation.Plugin;
 
 var cases = new (string Name, Func<Task> Run)[]
 {
@@ -14,7 +15,14 @@ var cases = new (string Name, Func<Task> Run)[]
     ("duplicate seed dispatches once", DuplicateSeed),
     ("dispatcher failure remains uncertain and claimed", UncertainExecution),
     ("trail failure stops dispatch", TrailFailure),
-    ("completed cycle without seed returns cleanly", NoNextSeed)
+    ("completed cycle without seed returns cleanly", NoNextSeed),
+    ("plugin manifest validates and is disabled by default", ValidPluginManifest),
+    ("disabled plugin trails and refuses dispatch", DisabledPlugin),
+    ("unknown plugin route rejects", UnknownPluginRoute),
+    ("unregistered plugin rejects", UnregisteredPlugin),
+    ("mismatched activation grant rejects", InvalidPluginGrant),
+    ("plugin cannot override caller policy", PluginPolicyDenied),
+    ("ambiguous plugin routes fail closed", AmbiguousPluginRoutes)
 };
 
 var failures = 0;
@@ -58,6 +66,12 @@ static (CycleResultEnvelope Message, CallerContext Caller) ValidCase()
 }
 
 static TestRig Rig() => new();
+
+static PluginManifest LoadPluginManifest() =>
+    PluginManifest.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "plugin.json")));
+
+static PluginActivationGrant Grant(bool enabled = true, bool registered = true, string? policyRef = null) =>
+    new("pmcro.continuation", "0.1.0", policyRef ?? "pmcro.policy.continuation", "@orchestrator", registered, enabled);
 
 static void Require(bool condition, string reason)
 {
@@ -197,6 +211,76 @@ static async Task NoNextSeed()
     var result = await rig.Handler.HandleAsync(message with { NextSeed = null }, caller);
     Require(result.Status == ContinuationStatus.NoContinuation, "no seed should finish cleanly");
     Require(rig.Dispatcher.Calls == 0, "no dispatch permitted");
+}
+
+static Task ValidPluginManifest()
+{
+    var manifest = LoadPluginManifest();
+    Require(manifest.Validate().Count == 0, "manifest validation failed");
+    Require(!manifest.Governance.EnabledByDefault, "plugin must be disabled by default");
+    Require(manifest.Promotion == "generated", "must not claim checked promotion");
+    return Task.CompletedTask;
+}
+
+static async Task DisabledPlugin()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    var plugin = new ContinuationPlugin(LoadPluginManifest(), rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:next-seed", message, caller, Grant(enabled: false));
+    Require(result.Status == ContinuationStatus.Deferred && result.ReasonCode == "plugin_disabled", "must defer disabled plugin");
+    Require(rig.Dispatcher.Calls == 0 && rig.Trail.Records.Count == 1, "disabled invocation requires Trail, never dispatch");
+}
+
+static async Task UnknownPluginRoute()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    var plugin = new ContinuationPlugin(LoadPluginManifest(), rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:unknown", message, caller, Grant());
+    Require(result.Status == ContinuationStatus.Rejected && result.ReasonCode == "unregistered_plugin_route", "must reject route");
+    Require(rig.Dispatcher.Calls == 0, "unknown route must not dispatch");
+}
+
+static async Task UnregisteredPlugin()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    var plugin = new ContinuationPlugin(LoadPluginManifest(), rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:next-seed", message, caller, Grant(registered: false));
+    Require(result.ReasonCode == "plugin_not_registered", "must require registration");
+}
+
+static async Task InvalidPluginGrant()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    var plugin = new ContinuationPlugin(LoadPluginManifest(), rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:next-seed", message, caller, Grant(policyRef: "wrong.policy"));
+    Require(result.ReasonCode == "invalid_plugin_grant", "must reject mismatched policy ref");
+}
+
+static async Task PluginPolicyDenied()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    rig.Policy.Disposition = AuthorizationDisposition.Denied;
+    var plugin = new ContinuationPlugin(LoadPluginManifest(), rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:next-seed", message, caller, Grant());
+    Require(result.Status == ContinuationStatus.Rejected && result.ReasonCode == "policy_denied", "host activation is not policy approval");
+    Require(rig.Dispatcher.Calls == 0, "must not dispatch denied command");
+}
+
+static async Task AmbiguousPluginRoutes()
+{
+    var (message, caller) = ValidCase();
+    var rig = Rig();
+    var manifest = LoadPluginManifest();
+    manifest.Routes.Add(manifest.Routes[0]);
+    Require(manifest.Validate().Contains("ambiguous_plugin_routes"), "duplicate route must invalidate manifest");
+    var plugin = new ContinuationPlugin(manifest, rig.Handler, rig.Trail);
+    var result = await plugin.InvokeAsync("/pmcro:next-seed", message, caller, Grant());
+    Require(result.ReasonCode == "invalid_plugin_manifest", "must fail closed on ambiguous manifest");
 }
 
 sealed class TestRig
