@@ -1,0 +1,23 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.correction",
+  "run_id": "derived-make-continuation-application-2026-10-28",
+  "run_id_kind": "derived",
+  "observed_failure": {
+    "commit": "23821ce9ae3d76a24ff1aadc470ab78060f4eb36",
+    "workflow_run": 40625754782,
+    "job": 122610134029,
+    "phase": "dotnet.build",
+    "compiler_error": "CS0104: CycleOutcome ambiguous between PMCR.O.Core and PMCR.O.Continuation"
+  },
+  "correction": {
+    "path": "tests/PMCR.O.Continuation.Integration.Tests/Program.cs",
+    "change": "fully qualify the continuation-specific cycle outcome fixture"
+  },
+  "status": "correction_candidate",
+  "verification": {
+    "combined_dotnet_build": "pending_new_ci",
+    "independent_semantic_checker": "pending"
+  },
+  "promotion": "generated"
+}

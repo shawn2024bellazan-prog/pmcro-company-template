@@ -185,7 +185,7 @@ sealed class IntegrationRig
             new CycleRouting("@reflector", "@orchestrator", "@orchestrator", "/pmcro:run"),
             new CorrelationContext(Caller.IntentId, Caller.RunId, Caller.CorrelationId,
                 Caller.CommandId, Caller.ParentFrameId),
-            new CycleOutcome("reflect", "completed", new CycleEvidence(["frame-parent", "frame-source"], "passed")),
+            new PMCR.O.Continuation.CycleOutcome("reflect", "completed", new CycleEvidence(["frame-parent", "frame-source"], "passed")),
             seed, true, "@reflector", "next_seed.acceptance");
     }
 
