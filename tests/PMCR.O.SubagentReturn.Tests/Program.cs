@@ -36,7 +36,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("durable state survives a new store instance", DurableStateRestart),
     ("durable compare and swap has one winner", DurableStateCas),
     ("HMAC checker proof binds identity and result", SignedCheckerProof),
-    ("hash-linked SQLite trail detects tampering", HashTrailIntegrity)
+    ("hash-linked SQLite trail detects tampering", HashTrailIntegrity),
+    ("durable completion closes result without seed", DurableNoSeed),
+    ("durable seed defers without external dispatch and can restart", DurableSeedDeferred)
 };
 
 var failures = 0;
@@ -609,6 +611,39 @@ static async Task HashTrailIntegrity()
     Require(!await ledger.VerifyAsync(rig.Caller.RunId, head), "tampered payload was accepted");
 }
 
+static async Task DurableNoSeed()
+{
+    var rig = await Rig.CreateAsync();
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-return-" + Guid.NewGuid().ToString("N") + ".db");
+    var states = new SqliteSubagentReturnStateStore(file);
+    var message = rig.Completed(withSeed: false);
+    var first = await rig.Handler(durableStates: states).HandleAsync(message, rig.Invocation(), rig.Grant());
+    Require(first.Status == SubagentReturnStatus.Completed && rig.Dispatcher.Calls == 0,
+        "durable no-seed completion was not closed");
+    var later = await rig.Handler(durableStates: new SqliteSubagentReturnStateStore(file))
+        .HandleAsync(message, rig.Invocation(), rig.Grant());
+    Require(later.Status == SubagentReturnStatus.Duplicate, "durable closed run reopened after restart");
+}
+
+static async Task DurableSeedDeferred()
+{
+    var rig = await Rig.CreateAsync();
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-return-" + Guid.NewGuid().ToString("N") + ".db");
+    var message = rig.Completed();
+    var first = await rig.Handler(durableStates: new SqliteSubagentReturnStateStore(file))
+        .HandleAsync(message, rig.Invocation(), rig.Grant());
+    var second = await rig.Handler(durableStates: new SqliteSubagentReturnStateStore(file))
+        .HandleAsync(message, rig.Invocation(), rig.Grant());
+    var durable = await new SqliteSubagentReturnStateStore(file).ReadAsync(
+        string.Concat(new[] { SubagentReturnSchemas.SubagentReturn, rig.Caller.AgentId,
+            rig.Caller.IntentId, rig.Caller.RunId, Rig.SubagentRunId }
+            .Select(v => v.Length + ":" + v)));
+    Require(first.Status == SubagentReturnStatus.Deferred &&
+        second.Status == SubagentReturnStatus.Deferred &&
+        durable?.State == DurableReturnState.Deferred && rig.Dispatcher.Calls == 0,
+        "durable unconfigured dispatch was invoked or could not recover");
+}
+
 static void Require(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException(message);
@@ -652,7 +687,8 @@ sealed class Rig
         PluginManifest? manifest = null,
         ISubagentCheckerProof? checker = null,
         ISeedClaimStore? claims = null,
-        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null)
+        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null,
+        SqliteSubagentReturnStateStore? durableStates = null)
     {
         var writer = new EnterpriseContinuationTrailWriter(Trails, HostContext);
         var verifier = new EnterpriseContinuationEvidenceVerifier(Trails, ContinuationProof);
@@ -661,7 +697,7 @@ sealed class Rig
         return new SubagentCompletionHandler(
             manifest ?? LoadManifest(), claims ?? new InMemorySeedClaimStore(), checker ?? Checker,
             continuation, new TrailFrameIntegration(Trails), new CallerFailureFrameFactory(HostContext),
-            proofVerifier ?? new FixtureAuthenticatedCheckerVerifier());
+            proofVerifier ?? new FixtureAuthenticatedCheckerVerifier(), durableStates);
     }
 
     public PmcroApplicationCommandRouter<SubagentReturnEnvelope, SubagentReturnReceipt> Router() =>

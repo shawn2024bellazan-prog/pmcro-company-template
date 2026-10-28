@@ -92,6 +92,7 @@ public sealed class SubagentCompletionHandler
     private readonly PluginManifest _manifest;
     private readonly IReadOnlyList<string> _manifestErrors;
     private readonly ISeedClaimStore _claims;
+    private readonly SqliteSubagentReturnStateStore? _durableStates;
     private readonly ISubagentCheckerProof _checker;
     private readonly IAuthenticatedCheckerEvidenceVerifier _proofVerifier;
     private readonly CallerContinuationHandler _continuation;
@@ -105,12 +106,14 @@ public sealed class SubagentCompletionHandler
         CallerContinuationHandler continuation,
         TrailFrameIntegration trail,
         CallerFailureFrameFactory frames,
-        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null)
+        IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null,
+        SqliteSubagentReturnStateStore? durableStates = null)
     {
         _manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
         _claims = claims ?? throw new ArgumentNullException(nameof(claims));
         _checker = checker ?? throw new ArgumentNullException(nameof(checker));
         _proofVerifier = proofVerifier ?? new UnconfiguredCheckerEvidenceVerifier();
+        _durableStates = durableStates;
         _continuation = continuation ?? throw new ArgumentNullException(nameof(continuation));
         _trail = trail ?? throw new ArgumentNullException(nameof(trail));
         _frames = frames ?? throw new ArgumentNullException(nameof(frames));
@@ -262,6 +265,59 @@ public sealed class SubagentCompletionHandler
         }
         if (!authenticated)
             return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred, "checker_proof_unverified", SubagentFailureAttribution.Host);
+
+        // Durable mode is a strict, opt-in gate: external continuation dispatch must be
+        // staged by a separate transactional outbox adapter. Calling the legacy handler
+        // here would permit side effects without recording an atomic dispatch intent.
+        if (_durableStates is not null)
+        {
+            var digest = SubagentResultDigest.Compute(final);
+            var key = ClaimKey(invocation);
+            var recorded = await _durableStates.ReadAsync(key, cancellationToken);
+            if (recorded is null)
+            {
+                recorded = await _durableStates.TryTransitionAsync(key, null,
+                    DurableReturnState.Received, digest, cancellationToken)
+                    ?? await _durableStates.ReadAsync(key, cancellationToken);
+            }
+            if (recorded is null || recorded.ResultDigest != digest)
+                return await ConcludeAsync(invocation, SubagentReturnStatus.Rejected,
+                    "durable_result_digest_conflict", SubagentFailureAttribution.Host);
+            if (recorded.State is DurableReturnState.Closed or DurableReturnState.Dispatched)
+                return await ConcludeAsync(invocation, SubagentReturnStatus.Duplicate,
+                    "durable_return_already_closed", SubagentFailureAttribution.None);
+            if (recorded.State is DurableReturnState.Dispatching or DurableReturnState.ExecutionUncertain)
+                return await ConcludeAsync(invocation, SubagentReturnStatus.ExecutionUncertain,
+                    "external_dispatch_reconciliation_required", SubagentFailureAttribution.Host);
+            if (recorded.State is DurableReturnState.Received or DurableReturnState.Deferred)
+            {
+                var moved = await _durableStates.TryTransitionAsync(key, recorded.Version,
+                    DurableReturnState.Verified, digest, cancellationToken);
+                if (moved is null)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                        "durable_admission_concurrent", SubagentFailureAttribution.Host);
+                recorded = moved;
+            }
+            if (final.NextSeed is not null)
+            {
+                // No side effects until a proper policy-preflight + transactional outbox
+                // implementation has been installed. Verification remains recoverable.
+                var deferred = await _durableStates.TryTransitionAsync(key, recorded.Version,
+                    DurableReturnState.Deferred, digest, cancellationToken);
+                if (deferred is null)
+                    return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                        "durable_admission_concurrent", SubagentFailureAttribution.Host);
+                return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                    "durable_dispatch_adapter_unconfigured", SubagentFailureAttribution.Host);
+            }
+            var closed = await _durableStates.TryTransitionAsync(key, recorded.Version,
+                DurableReturnState.Closed, digest, cancellationToken);
+            if (closed is null)
+                return await ConcludeAsync(invocation, SubagentReturnStatus.Deferred,
+                    "durable_admission_concurrent", SubagentFailureAttribution.Host);
+            return await ConcludeAsync(invocation, SubagentReturnStatus.Completed,
+                "subagent_completed_no_continuation", SubagentFailureAttribution.None);
+        }
 
         var executionClaim = await ClaimOrConcludeAsync(invocation, cancellationToken);
         if (executionClaim is not null) return executionClaim;
