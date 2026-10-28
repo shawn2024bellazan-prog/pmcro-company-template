@@ -1,0 +1,36 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.operation",
+  "command": "@maker /pmcro:make implement_next_seed_contract",
+  "intent": "Implement governed caller-returned next-seed contracts",
+  "branch": "feat/pmcro-activation",
+  "actor": "maker",
+  "status": "candidate",
+  "authorization": {
+    "source": "explicit user command",
+    "scope": "standalone feature-branch contracts, tests, and documentation",
+    "production_deploy": false
+  },
+  "evidence": {
+    "source_file": "src/PMCR.O.Continuation/Contracts.cs",
+    "handler_file": "src/PMCR.O.Continuation/CallerContinuationHandler.cs",
+    "test_file": "tests/PMCR.O.Continuation.Tests/Program.cs",
+    "plan_file": "docs/decisions/0002-next-seed-return-make-plan.md"
+  },
+  "verification": {
+    "static_file_checks": "passed_xml_json_and_file_inventory",
+    "dotnet_build": "not_run_sdk_unavailable",
+    "contract_tests": "not_run_sdk_unavailable",
+    "validation_script": "not_run_pwsh_unavailable",
+    "remote_development_devices": "offline",
+    "separate_checker": "pending"
+  },
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "validate_next_seed_contract",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}
