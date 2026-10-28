@@ -2,7 +2,7 @@
 
 A bounded cognitive-loop foundation: **Plan → Make → Check → Reflect → continue, retry, or escalate**.
 
-> **New to PMCR-O?** Start with [Start here](docs/START-HERE.md), [plain-English glossary](docs/GLOSSARY.md), and [current implementation status](docs/PROJECT-STATUS.md). The feature branch is a development candidate; CI passing does not activate the framework.
+> **New to PMCR-O?** Start with [Start here](docs/START-HERE.md), [plain-English glossary](docs/GLOSSARY.md), and [current implementation status](docs/PROJECT-STATUS.md), and [development activation checklist](docs/DEVELOPMENT-ACTIVATION-CHECKLIST.md). The feature branch is a development candidate; CI passing does not activate the framework.
 >
 > **Developer snapshot (October 28, 2026):** source `9f4d470` passed [GitHub Actions CI 40642959766](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/40642959766), including 38/38 subagent-return checks. The authorization-snapshot/outbox path is not fully integrated for production dispatch.
 

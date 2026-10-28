@@ -44,7 +44,14 @@ var tests = new (string Name, Func<Task> Run)[]
     ("trusted Trail head anchor detects forgery", TrustedAnchorForgery),
     ("caller policy outage remains deferred and recoverable", DurablePolicyRecovery),
     ("caller coordinator requires trusted authorization", CoordinatorPolicy),
-    ("caller coordinator rejects conflicting digest on restart", CoordinatorDigest)
+    ("caller coordinator rejects conflicting digest on restart", CoordinatorDigest),
+    ("durable handler records anchored authorized intent without dispatch", IntegratedAuthorizedIntent),
+    ("policy version revocation blocks atomic reservation", AuthorizationPolicyRevocation),
+    ("concurrent authorized reservations have one winner", AuthorizedReservationConcurrency),
+    ("restart after authorized reservation requires reconciliation", AuthorizedReservationRestart),
+    ("unanchored or missing checker frame fails closed", MissingAnchoredProof),
+    ("forged authorization snapshot rejected", ForgedAuthorizationSnapshot),
+    ("authorized policy outage recovers", AuthorizedPolicyOutageRecovery)
 };
 
 var failures = 0;
@@ -751,6 +758,164 @@ static async Task CoordinatorDigest()
         "a changed result was authorized under a reused key");
 }
 
+static async Task<TrustedTrailHeadVerifier> BuildTestAnchorAsync(Rig rig, bool includeChecker = true)
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-anchored-proof-" + Guid.NewGuid().ToString("N") + ".db");
+    var ledger = new SqliteHashChainedTrailLedger(file);
+    var frames = await rig.Trails.ReadRunAsync(rig.Caller.RunId);
+    string head = "";
+    foreach (var frame in frames.Where(f => includeChecker || f.FrameId != "frame-checker"))
+        head = await ledger.AppendAsync(frame);
+    var anchor = new InMemoryTrustedTrailHeadAnchor();
+    Require(await anchor.CompareAndSetAsync(rig.Caller.RunId, null, head), "test anchor creation failed");
+    return new TrustedTrailHeadVerifier(ledger, anchor);
+}
+
+static async Task<(Rig Rig, SqliteContinuationOutbox Outbox,
+    DurableContinuationCoordinator Coordinator, DurableAuthorizationTestHost Host,
+    SqliteSubagentReturnStateStore States, string StateFile, TrustedTrailHeadVerifier Anchor)>
+    BuildAuthorizedRigAsync()
+{
+    var rig = await Rig.CreateAsync();
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-auth-" + Guid.NewGuid().ToString("N") + ".db");
+    var outbox = new SqliteContinuationOutbox(file);
+    await outbox.SetTrustedPolicyVersionAsync("policy.test", "v1");
+    var host = new DurableAuthorizationTestHost();
+    var coordinator = new DurableContinuationCoordinator(outbox, host, host);
+    var stateFile = Path.Combine(Path.GetTempPath(), "pmcro-auth-state-" + Guid.NewGuid().ToString("N") + ".db");
+    var states = new SqliteSubagentReturnStateStore(stateFile);
+    var anchor = await BuildTestAnchorAsync(rig);
+    return (rig, outbox, coordinator, host, states, stateFile, anchor);
+}
+
+static async Task IntegratedAuthorizedIntent()
+{
+    var a = await BuildAuthorizedRigAsync();
+    var message = a.Rig.Completed();
+    var handler = a.Rig.Handler(durableStates:a.States,
+        durableCoordinator:a.Coordinator,trustedTrailHead:a.Anchor);
+    var first = await handler.HandleAsync(message,a.Rig.Invocation(),a.Rig.Grant());
+    Require(first.Status == SubagentReturnStatus.Deferred &&
+        first.ReasonCode == "durable_authorized_intent_recorded" &&
+        a.Rig.Dispatcher.Calls == 0, "authorized intent was not staged safely");
+    var key = DurableContinuationCoordinator.ScopedKey(a.Rig.Caller,message.FinalResult!.NextSeed!);
+    var row = await a.Outbox.ReadAsync(key);
+    Require(row?.Status == DurableOutboxStatus.Deferred, "authorized intent not persisted");
+    var retry = await a.Rig.Handler(durableStates:new SqliteSubagentReturnStateStore(a.StateFile),
+        durableCoordinator:new DurableContinuationCoordinator(a.Outbox,a.Host,a.Host),
+        trustedTrailHead:a.Anchor).HandleAsync(message,a.Rig.Invocation(),a.Rig.Grant());
+    Require(retry.Status == SubagentReturnStatus.Deferred &&
+        retry.ReasonCode == "durable_authorized_intent_recorded" &&
+        a.Rig.Dispatcher.Calls == 0, "restart either dispatched or lost authorization");
+}
+
+static async Task AuthorizationPolicyRevocation()
+{
+    var a = await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    var prep=await a.Coordinator.PrepareVerifiedAsync(
+        message.FinalResult!,a.Rig.Caller,a.Rig.Checker.Attestation!);
+    Require(prep == DurableContinuationDecision.AuthorizedIntentRecorded,"authorization admission failed");
+    await a.Outbox.SetTrustedPolicyVersionAsync("policy.test","v2");
+    var key=DurableContinuationCoordinator.ScopedKey(a.Rig.Caller,message.FinalResult!.NextSeed!);
+    var denied=await a.Coordinator.ReserveVerifiedAsync(key,"v1","frame-checker","external-op-1");
+    Require(denied==DurableContinuationDecision.PolicyVersionChanged,
+        "revoked policy version reserved dispatch");
+    Require((await a.Outbox.ReadAsync(key))?.Status==DurableOutboxStatus.Deferred,
+        "revocation consumed or dispatched intent");
+}
+
+static async Task AuthorizedReservationConcurrency()
+{
+    var a=await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    Require(await a.Coordinator.PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,
+        a.Rig.Checker.Attestation!)==DurableContinuationDecision.AuthorizedIntentRecorded,
+        "authorization failed");
+    var key=DurableContinuationCoordinator.ScopedKey(a.Rig.Caller,message.FinalResult!.NextSeed!);
+    var tasks=Enumerable.Range(0,8).Select(i=>Task.Run(async ()=>
+        await new DurableContinuationCoordinator(a.Outbox,a.Host,a.Host).ReserveVerifiedAsync(
+            key,"v1","frame-checker","external-op-"+i))).ToArray();
+    var results=await Task.WhenAll(tasks);
+    Require(results.Count(x=>x==DurableContinuationDecision.ReservedRequiresReconciliation)==1,
+        "concurrent policy-bound reservation yielded multiple winners");
+    var row=await a.Outbox.ReadAsync(key);
+    Require(row?.Status==DurableOutboxStatus.Dispatching &&
+        !string.IsNullOrWhiteSpace(row.ExternalOperationId) && a.Rig.Dispatcher.Calls==0,
+        "external operation ID was not durably reserved before dispatch");
+    Require(await a.Outbox.ReserveAsync(key,row!.Version) is null,
+        "legacy reservation bypassed authorized status");
+}
+
+static async Task AuthorizedReservationRestart()
+{
+    var a=await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    await a.Coordinator.PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,a.Rig.Checker.Attestation!);
+    var key=DurableContinuationCoordinator.ScopedKey(a.Rig.Caller,message.FinalResult!.NextSeed!);
+    var reserved=await a.Coordinator.ReserveVerifiedAsync(key,"v1","frame-checker","ext-operation-7");
+    Require(reserved==DurableContinuationDecision.ReservedRequiresReconciliation,"reservation failed");
+    var first=await a.Outbox.ReadAsync(key);
+    var restarted=new DurableContinuationCoordinator(a.Outbox,a.Host,a.Host);
+    Require(await restarted.ReserveVerifiedAsync(key,"v1","frame-checker","ext-operation-7")
+        ==DurableContinuationDecision.AlreadyReserved,"crash/restart replayed reservation");
+    var uncertain=await a.Outbox.MarkUncertainAsync(key,first!.Version);
+    Require(uncertain?.Status==DurableOutboxStatus.ExecutionUncertain,"uncertain transition lost");
+    Require(await restarted.ReserveVerifiedAsync(key,"v1","frame-checker","ext-operation-7")
+        ==DurableContinuationDecision.AlreadyReserved,"uncertain operation replayed");
+    var resolved=await a.Outbox.ReconcileAsync(key,uncertain!.Version,"ext-operation-7",true);
+    Require(resolved?.Status==DurableOutboxStatus.Dispatched &&
+        resolved.ExternalOperationId=="ext-operation-7","authoritative ID was not retained");
+}
+
+static async Task MissingAnchoredProof()
+{
+    var a=await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    var noAnchor=await a.Rig.Handler(durableStates:a.States,
+        durableCoordinator:a.Coordinator).HandleAsync(message,a.Rig.Invocation(),a.Rig.Grant());
+    Require(noAnchor.ReasonCode=="trusted_trail_head_unconfigured","missing trust anchor allowed authorization");
+    var incomplete=await BuildTestAnchorAsync(a.Rig,includeChecker:false);
+    var missing=await a.Rig.Handler(durableStates:a.States,
+        durableCoordinator:a.Coordinator,trustedTrailHead:incomplete)
+        .HandleAsync(message,a.Rig.Invocation(),a.Rig.Grant());
+    Require(missing.ReasonCode=="trusted_trail_head_unverified" &&
+        a.Host.Calls==0 && a.Rig.Dispatcher.Calls==0,
+        "anchored chain lacking checker evidence authorized continuation");
+}
+
+static async Task ForgedAuthorizationSnapshot()
+{
+    var a=await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    a.Host.ForgeFrame=true;
+    var decision=await a.Coordinator.PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,
+        a.Rig.Checker.Attestation!);
+    Require(decision==DurableContinuationDecision.InvalidAuthorization &&
+        a.Rig.Dispatcher.Calls==0,"forged authorization checker frame accepted");
+    a.Host.ForgeFrame=false;
+    a.Host.Accept=false;
+    var denied=await a.Coordinator.PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,
+        a.Rig.Checker.Attestation!);
+    Require(denied==DurableContinuationDecision.InvalidAuthorization,
+        "unauthenticated policy authorization accepted");
+}
+
+static async Task AuthorizedPolicyOutageRecovery()
+{
+    var a=await BuildAuthorizedRigAsync();
+    var message=a.Rig.Completed();
+    a.Host.Unavailable=true;
+    var outage=await a.Coordinator.PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,
+        a.Rig.Checker.Attestation!);
+    Require(outage==DurableContinuationDecision.AuthorizationUnavailable,"policy outage did not defer");
+    a.Host.Unavailable=false;
+    var retry=await new DurableContinuationCoordinator(a.Outbox,a.Host,a.Host)
+        .PrepareVerifiedAsync(message.FinalResult!,a.Rig.Caller,a.Rig.Checker.Attestation!);
+    Require(retry==DurableContinuationDecision.AuthorizedIntentRecorded,
+        "recoverable policy outage burned authorization");
+}
+
 static void Require(bool condition, string message)
 {
     if (!condition) throw new InvalidOperationException(message);
@@ -795,7 +960,9 @@ sealed class Rig
         ISubagentCheckerProof? checker = null,
         ISeedClaimStore? claims = null,
         IAuthenticatedCheckerEvidenceVerifier? proofVerifier = null,
-        SqliteSubagentReturnStateStore? durableStates = null)
+        SqliteSubagentReturnStateStore? durableStates = null,
+        DurableContinuationCoordinator? durableCoordinator = null,
+        TrustedTrailHeadVerifier? trustedTrailHead = null)
     {
         var writer = new EnterpriseContinuationTrailWriter(Trails, HostContext);
         var verifier = new EnterpriseContinuationEvidenceVerifier(Trails, ContinuationProof);
@@ -804,7 +971,8 @@ sealed class Rig
         return new SubagentCompletionHandler(
             manifest ?? LoadManifest(), claims ?? new InMemorySeedClaimStore(), checker ?? Checker,
             continuation, new TrailFrameIntegration(Trails), new CallerFailureFrameFactory(HostContext),
-            proofVerifier ?? new FixtureAuthenticatedCheckerVerifier(), durableStates);
+            proofVerifier ?? new FixtureAuthenticatedCheckerVerifier(), durableStates,
+            durableCoordinator, trustedTrailHead);
     }
 
     public PmcroApplicationCommandRouter<SubagentReturnEnvelope, SubagentReturnReceipt> Router() =>
@@ -884,6 +1052,34 @@ sealed class FixtureAuthenticatedCheckerVerifier : IAuthenticatedCheckerEvidence
             frame.FrameId == "frame-checker" && frame.Provenance == "test-fixture" &&
             a.CheckerAgentId == "@checker" &&
             a.ResultDigest == SubagentResultDigest.Compute(r.FinalResult!));
+}
+
+sealed class DurableAuthorizationTestHost : ITrustedCallerAuthorizationSource,
+    IAuthenticatedCallerAuthorizationVerifier
+{
+    public bool ForgeFrame { get; set; }
+    public bool Accept { get; set; } = true;
+    public bool Unavailable { get; set; }
+    public int Calls { get; private set; }
+    public Task<DurableAuthorizationSnapshot?> AuthorizeAsync(
+        CycleResultEnvelope result, CallerContext caller, CheckerAttestation checker, CancellationToken ct)
+    {
+        Calls++;
+        if (Unavailable) throw new InvalidOperationException("host policy service unavailable");
+        var seed=result.NextSeed!;
+        return Task.FromResult<DurableAuthorizationSnapshot?>(new(
+            DurableContinuationCoordinator.ScopedKey(caller,seed),
+            SubagentResultDigest.Compute(result),seed.SeedId,
+            "policy.test","v1",checker.CheckerAgentId,
+            ForgeFrame ? "forged-checker-frame" : checker.EvidenceFrameId!,
+            checker.EvidenceDigest!,caller.AgentId,caller.RunId,caller.CorrelationId,
+            "host-authorization-test-fixture"));
+    }
+    public Task<bool> VerifyAsync(DurableAuthorizationSnapshot snapshot,
+        CycleResultEnvelope result, CallerContext caller, CheckerAttestation checker, CancellationToken ct) =>
+        Task.FromResult(Accept && !Unavailable &&
+            snapshot.CheckerFrameId==checker.EvidenceFrameId &&
+            snapshot.ResultDigest==SubagentResultDigest.Compute(result));
 }
 
 sealed class FakeSubagentChecker : ISubagentCheckerProof
