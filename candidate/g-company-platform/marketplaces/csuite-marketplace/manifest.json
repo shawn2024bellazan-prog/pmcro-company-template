@@ -1,0 +1,30 @@
+{
+  "name": "csuite-marketplace",
+  "version": "0.1.0-candidate",
+  "status": "Candidate",
+  "description": "Executive Orchestrators, /embody protocol, Roundtable, handoff contracts",
+  "owner": "CEO",
+  "dependencies": ["pmcro-marketplace"],
+  "executives": [
+    "CEO",
+    "CTO",
+    "COO",
+    "CFO",
+    "CPO",
+    "CMO",
+    "CLO",
+    "CIO",
+    "CSO",
+    "CHRO",
+    "ChiefOfStaff"
+  ],
+  "capabilities": [
+    "/embody",
+    "/delegate",
+    "/roundtable",
+    "/report",
+    "/decision",
+    "/escalate"
+  ],
+  "created_from": "trail-0001-genesis"
+}

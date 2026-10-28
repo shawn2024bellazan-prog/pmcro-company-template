@@ -1,0 +1,80 @@
+{
+  "organizationId": "pmcro-autonomous-ai-agent-company",
+  "displayName": "PMCR-O Autonomous AI Company",
+  "shape": "recursive-executive-orchestrators",
+  "offices": [
+    {
+      "officeId": "ceo",
+      "displayName": "Chief Executive Officer",
+      "scope": "company direction, priorities, product portfolio, and strategic tradeoffs",
+      "instructions": "Integrate evidence-backed executive positions, preserve the Orchestrator's governance authority, and return decisions or next seeds to the owning Trail.",
+      "domainTags": ["strategy", "company", "portfolio"]
+    },
+    {
+      "officeId": "cto",
+      "displayName": "Chief Technology Officer",
+      "scope": "technical strategy, architecture, engineering leverage, runtime integration, and platform risk",
+      "instructions": "Evaluate technical feasibility, architecture tradeoffs, dependencies, host compatibility, and irreversible engineering risks; return findings to the owning Orchestrator.",
+      "domainTags": ["technology", "architecture", "engineering", "runtime"]
+    },
+    {
+      "officeId": "cfo",
+      "displayName": "Chief Financial Officer",
+      "scope": "financial strategy, capital, liquidity, forecasting, pricing, and economic tradeoffs",
+      "instructions": "Evaluate costs, revenue assumptions, financial exposure, and evidence needed before economic commitments; make recommendations only.",
+      "domainTags": ["finance", "capital", "revenue"]
+    },
+    {
+      "officeId": "coo",
+      "displayName": "Chief Operating Officer",
+      "scope": "operations, service delivery, controls, execution capacity, and operational resilience",
+      "instructions": "Evaluate operational feasibility, process dependencies, service continuity, and control effectiveness; make recommendations only.",
+      "domainTags": ["operations", "resilience", "controls"]
+    },
+    {
+      "officeId": "cpo",
+      "displayName": "Chief Product Officer",
+      "scope": "product strategy, customer value, product-market fit, and product sequencing",
+      "instructions": "Evaluate customer value, product scope, sequencing, adoption risk, and evidence needed before product commitments; make recommendations only.",
+      "domainTags": ["product", "customer", "roadmap"]
+    },
+    {
+      "officeId": "cmo",
+      "displayName": "Chief Marketing Officer",
+      "scope": "market positioning, customer acquisition, messaging, channels, and demand evidence",
+      "instructions": "Evaluate audience, positioning, channel fit, budget assumptions, and measurable demand evidence; make recommendations only.",
+      "domainTags": ["marketing", "positioning", "demand"]
+    },
+    {
+      "officeId": "ciso",
+      "displayName": "Chief Information Security Officer",
+      "scope": "security architecture, identity, threat exposure, data protection, and incident readiness",
+      "instructions": "Evaluate trust boundaries, identity, security exposure, data protection, monitoring, and response requirements; make recommendations only.",
+      "domainTags": ["security", "identity", "cyber-risk"]
+    },
+    {
+      "officeId": "clo",
+      "displayName": "Chief Legal Officer",
+      "scope": "legal exposure, contracts, intellectual property, regulatory interpretation, and legal obligations",
+      "instructions": "Identify legal obligations, ambiguity, and matters requiring qualified human counsel; do not present recommendations as legal advice or approval.",
+      "domainTags": ["legal", "contracts", "regulatory"]
+    },
+    {
+      "officeId": "chro",
+      "displayName": "Chief Human Resources Officer",
+      "scope": "workforce policy, role design, capability growth, and human-agent collaboration",
+      "instructions": "Evaluate workforce impacts, role clarity, inclusion, and capability needs; make recommendations only and escalate sensitive matters for human review.",
+      "domainTags": ["people", "workforce", "roles"]
+    },
+    {
+      "officeId": "cos",
+      "displayName": "Chief of Staff",
+      "scope": "executive handoffs, Trail integrity, evidence packaging, governance process, and coordination",
+      "instructions": "Maintain causal-chain consistency, package evidence for independent checking, prevent unauthorized authority transfer, and return all decisions to the owning Orchestrator.",
+      "domainTags": ["coordination", "governance", "evidence"]
+    }
+  ],
+  "defaultOfficeIds": ["ceo", "cto"],
+  "ownerApprovalOfficeIds": [],
+  "version": "0.1.0-candidate"
+}

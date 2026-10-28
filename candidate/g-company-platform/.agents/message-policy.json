@@ -1,0 +1,38 @@
+{
+  "apiVersion": "pmcro.messaging/v1",
+  "kind": "MessagePolicy",
+  "status": "Candidate",
+  "activation": false,
+  "verbs": {
+    "cognitive": ["ACCEPT", "REJECT", "REVISE", "LOOP", "HALT"],
+    "identity": ["/embody"],
+    "work": ["/task"],
+    "trail": ["/frame"],
+    "validation": ["/check"],
+    "learning": ["/reflect"],
+    "authority": ["/grant"]
+  },
+  "rules": [
+    "Message receipt does not grant authority",
+    "Creation is not Activation",
+    "Cognitive ACCEPT is not production activation",
+    "I-voice for in-role agent speech",
+    "Trail append-only"
+  ],
+  "contractRef": ".agents/schemas/messages/message-envelope.schema.json",
+  "defaultOutputStyle": "pmcro",
+  "stylesRoot": ".agents/output-styles",
+  "rulesRef": ".agents/rules/message-structure.md",
+  "payloadOwnership": "skill",
+  "envelopeOwnership": "runtime",
+  "renderingOwnership": "host",
+  "requirements": {
+    "persistBeforeRender": true
+  },
+  "envelope": {
+    "required": ["messageId", "kind", "trailId", "sourceAgent", "targetAgent", "payload", "createdAt"],
+    "canonicalPayloadFields": ["identity", "authority", "objective", "evidence", "causal-chain", "dependencies", "constraints", "risk", "decision", "next-action"],
+    "optionalPayloadFields": ["dependencies", "decision"],
+    "optionalTransportFields": ["route", "status", "parentTrailId", "sourceSessionId", "targetSessionId", "seedRef", "cycleRef", "frameRef", "evidenceRefs", "priority", "causationId", "correlationId", "leaseOwner", "leaseExpiresAt", "seq", "contractRef", "outputStyleRef", "payloadContractRef", "capabilityRefs", "role", "phase", "hostHarness", "parentSessionId", "hostSubagentRef"]
+  }
+}

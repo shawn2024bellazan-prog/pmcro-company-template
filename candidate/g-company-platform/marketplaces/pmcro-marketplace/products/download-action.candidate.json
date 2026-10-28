@@ -1,0 +1,14 @@
+{
+  "schema": "pmcro.marketplace.product.candidate/v1",
+  "id": "pmcro-orchestrator:download-action",
+  "status": "Candidate",
+  "ownerAgent": "pmcro-orchestrator",
+  "skillRef": ".agents/skills/download-action/SKILL.md",
+  "discovered": false,
+  "registered": false,
+  "granted": false,
+  "activated": false,
+  "published": false,
+  "stageOnly": true,
+  "executesDownloadedContent": false
+}

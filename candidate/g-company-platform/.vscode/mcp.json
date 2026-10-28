@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "pmcro-candidate": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "${workspaceFolder}/plugins/pmcro-runtime/src/ProjectName.Marketplace.Mcp/bin/Release/net10.0/ProjectName.Marketplace.Mcp.dll"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PMCRO_CANDIDATE_ROOT": "${workspaceFolder}",
+        "PMCRO_LOCAL_INFERENCE_ENABLED": "false"
+      }
+    }
+  }
+}

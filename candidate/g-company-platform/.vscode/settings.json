@@ -1,0 +1,12 @@
+{
+  "chat.plugins.enabled": true,
+  "chat.customizations.marketplace.enabled": true,
+  "chat.agentHost.byokModels.enabled": true,
+  "chat.plugins.marketplaces": [
+    "github/copilot-plugins",
+    "github/awesome-copilot",
+    "anthropics/claude-plugins-official",
+    "ShawnDelaineBellazanLoop/PMCR-O-Marketplace"
+  ],
+  "chat.useAgentSkills": true
+}

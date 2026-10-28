@@ -1,0 +1,45 @@
+name: PMCR-O G Marketplace MCP Candidate
+on:
+  push:
+    branches: [feat/pmcro-vscode-marketplace-mcp-candidate]
+  pull_request:
+    paths: ['candidate/g-company-platform/**', '.github/workflows/g-candidate-marketplace.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: candidate/g-company-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Validate candidate manifests and VS Code configuration
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for name in [
+              '.vscode/mcp.json', '.vscode/settings.json', '.vscode/extensions.json',
+              '.agents/message-policy.json',
+              '.agents/organizations/pmcro-autonomous-ai-agent-company/organization.candidate.json',
+              'marketplaces/pmcro-marketplace/manifest.json',
+              'marketplaces/pmcro-marketplace/products/download-action.candidate.json',
+              'marketplaces/csuite-marketplace/manifest.json'
+          ]:
+              json.loads(Path(name).read_text())
+          print('8 candidate JSON documents valid')
+          PY
+      - name: Offline action-download staging tests
+        run: node --test .agents/skills/download-action/tests/download-action.test.cjs
+      - name: Build .NET 10 candidate MCP server
+        run: dotnet build plugins/pmcro-runtime/src/ProjectName.Marketplace.Mcp/ProjectName.Marketplace.Mcp.csproj -c Release --nologo --warnaserror
+      - name: MCP stdio integration test, inference disabled
+        run: node --test docs/candidate-test-results/mcp-smoke.mjs
