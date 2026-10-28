@@ -1,0 +1,28 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.correction",
+  "run_id": "derived-make-continuation-application-2026-10-28",
+  "run_id_kind": "derived",
+  "observed_failure": {
+    "commit": "37f9f56d181748b6166188bf2e6063788d80ae1f",
+    "workflow_run": 40625868043,
+    "job": 122610500262,
+    "phase": "demo.smoke",
+    "result": "dotnet run --no-build could not find PMCR.O.Demo Release output",
+    "prior_checks": {
+      "core": "47/47 passed",
+      "continuation": "20/20 passed",
+      "integration": "9/9 passed"
+    }
+  },
+  "correction": {
+    "path": "PMCR-O.sln",
+    "change": "add missing Release ActiveCfg and Build entries for PMCR.O.Demo"
+  },
+  "status": "correction_candidate",
+  "verification": {
+    "full_ci": "pending_new_run",
+    "independent_semantic_checker": "pending"
+  },
+  "promotion": "generated"
+}
