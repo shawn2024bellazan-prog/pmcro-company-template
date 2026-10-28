@@ -42,7 +42,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("transactional outbox reservation does not replay", OutboxReservation),
     ("outbox uncertain requires external reconciliation", OutboxReconciliation),
     ("trusted Trail head anchor detects forgery", TrustedAnchorForgery),
-    ("caller policy outage remains deferred and recoverable", DurablePolicyRecovery)
+    ("caller policy outage remains deferred and recoverable", DurablePolicyRecovery),
+    ("caller coordinator requires trusted authorization", CoordinatorPolicy),
+    ("caller coordinator rejects conflicting digest on restart", CoordinatorDigest)
 };
 
 var failures = 0;
@@ -717,6 +719,36 @@ static async Task DurablePolicyRecovery()
     var mismatch = await policy.EvaluateAndAdmitAsync("key-policy", "sha256:forged",
         "seed-policy", () => Task.FromResult(true));
     Require(mismatch is null, "conflicting result was accepted as same idempotency key");
+}
+
+static async Task CoordinatorPolicy()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-coordinator-" + Guid.NewGuid().ToString("N") + ".db");
+    var coordinator = new DurableContinuationCoordinator(new SqliteContinuationOutbox(file));
+    var denied = await coordinator.PrepareAsync("key-1", "sha256:one", "seed-1",
+        () => Task.FromResult(false));
+    Require(denied == DurableContinuationDecision.PolicyDeferred, "unapproved continuation was admitted");
+    var approved = await coordinator.PrepareAsync("key-1", "sha256:one", "seed-1",
+        () => Task.FromResult(true));
+    Require(approved == DurableContinuationDecision.ReadyForReservation, "approved continuation lost recovery");
+    var noExternal = await coordinator.ReserveAsync("key-1", " ");
+    Require(noExternal == DurableContinuationDecision.ExternalIdRequired, "external operation ID was optional");
+    var reserved = await coordinator.ReserveAsync("key-1", "operation-1");
+    Require(reserved == DurableContinuationDecision.ReservedRequiresReconciliation, "dispatch reservation failed");
+    var restart = new DurableContinuationCoordinator(new SqliteContinuationOutbox(file));
+    Require(await restart.ReserveAsync("key-1", "operation-1") ==
+        DurableContinuationDecision.AlreadyReserved, "reservation replayed after restart");
+}
+
+static async Task CoordinatorDigest()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-coordinator-" + Guid.NewGuid().ToString("N") + ".db");
+    var first = new DurableContinuationCoordinator(new SqliteContinuationOutbox(file));
+    await first.PrepareAsync("key-2", "sha256:one", "seed-2", () => Task.FromResult(true));
+    var second = new DurableContinuationCoordinator(new SqliteContinuationOutbox(file));
+    Require(await second.PrepareAsync("key-2", "sha256:forged", "seed-2",
+        () => Task.FromResult(true)) == DurableContinuationDecision.ResultConflict,
+        "a changed result was authorized under a reused key");
 }
 
 static void Require(bool condition, string message)
