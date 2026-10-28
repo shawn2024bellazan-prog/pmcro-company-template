@@ -38,7 +38,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("HMAC checker proof binds identity and result", SignedCheckerProof),
     ("hash-linked SQLite trail detects tampering", HashTrailIntegrity),
     ("durable completion closes result without seed", DurableNoSeed),
-    ("durable seed defers without external dispatch and can restart", DurableSeedDeferred)
+    ("durable seed defers without external dispatch and can restart", DurableSeedDeferred),
+    ("transactional outbox reservation does not replay", OutboxReservation),
+    ("outbox uncertain requires external reconciliation", OutboxReconciliation)
 };
 
 var failures = 0;
@@ -642,6 +644,37 @@ static async Task DurableSeedDeferred()
         second.Status == SubagentReturnStatus.Deferred &&
         durable?.State == DurableReturnState.Deferred && rig.Dispatcher.Calls == 0,
         "durable unconfigured dispatch was invoked or could not recover");
+}
+
+static async Task OutboxReservation()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-outbox-" + Guid.NewGuid().ToString("N") + ".db");
+    var store = new SqliteContinuationOutbox(file);
+    var start = await store.AdmitAsync("idempotency-1", "sha256:result", "seed-1");
+    Require(start?.Status == DurableOutboxStatus.Deferred && start.Version == 1, "admission failed");
+    var instances = Enumerable.Range(0, 8).Select(_ => new SqliteContinuationOutbox(file)).ToArray();
+    var reservations = await Task.WhenAll(instances.Select(x => x.ReserveAsync("idempotency-1", 1)));
+    Require(reservations.Count(x => x is not null) == 1, "more than one reservation won");
+    var after = await new SqliteContinuationOutbox(file).ReadAsync("idempotency-1");
+    Require(after?.Status == DurableOutboxStatus.Dispatching, "reservation not persisted");
+    Require(await store.ReserveAsync("idempotency-1", after.Version) is null, "reserved dispatch replayed");
+}
+
+static async Task OutboxReconciliation()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-outbox-" + Guid.NewGuid().ToString("N") + ".db");
+    var store = new SqliteContinuationOutbox(file);
+    await store.AdmitAsync("idempotency-2", "sha256:result", "seed-2");
+    var reservation = await store.ReserveAsync("idempotency-2", 1);
+    Require(reservation is not null, "reservation failed");
+    var restarted = new SqliteContinuationOutbox(file);
+    var uncertain = await restarted.MarkUncertainAsync("idempotency-2", reservation!.Version);
+    Require(uncertain?.Status == DurableOutboxStatus.ExecutionUncertain, "uncertain state not recorded");
+    Require(await restarted.ReserveAsync("idempotency-2", uncertain.Version) is null, "uncertain dispatch replayed");
+    var resolved = await restarted.ReconcileAsync("idempotency-2", uncertain.Version,
+        "external-operation-001", dispatched: true);
+    Require(resolved?.Status == DurableOutboxStatus.Dispatched &&
+        resolved.ExternalOperationId == "external-operation-001", "external reconciliation failed");
 }
 
 static void Require(bool condition, string message)
