@@ -32,7 +32,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("checker outage recovers without losing terminal claim", CheckerOutageRecovery),
     ("outer and canonical role must agree", ConflictingRoles),
     ("result digest mismatches cannot dispatch", ResultDigestMismatch),
-    ("host checker proof gate cannot be bypassed", UntrustedProofGate)
+    ("host checker proof gate cannot be bypassed", UntrustedProofGate),
+    ("durable state survives a new store instance", DurableStateRestart),
+    ("durable compare and swap has one winner", DurableStateCas)
 };
 
 var failures = 0;
@@ -540,6 +542,31 @@ static async Task UntrustedProofGate()
     var receipt = await rig.Handler(proofVerifier: new UnconfiguredCheckerEvidenceVerifier())
         .HandleAsync(rig.Completed(), rig.Invocation(), rig.Grant());
     Require(receipt.ReasonCode == "checker_proof_unverified" && rig.Dispatcher.Calls == 0, "unverified proof accepted");
+}
+
+static async Task DurableStateRestart()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-return-" + Guid.NewGuid().ToString("N") + ".db");
+    var first = new SqliteSubagentReturnStateStore(file);
+    var created = await first.TryTransitionAsync("run-1", null, DurableReturnState.Received, "sha256:abc");
+    Require(created?.Version == 1, "initial transition failed");
+    var second = new SqliteSubagentReturnStateStore(file);
+    var reopened = await second.ReadAsync("run-1");
+    Require(reopened?.State == DurableReturnState.Received && reopened.Version == 1, "restart lost state");
+    var updated = await second.TryTransitionAsync("run-1", 1, DurableReturnState.Verified, "sha256:abc");
+    Require(updated?.Version == 2, "CAS verification failed");
+    var stale = await first.TryTransitionAsync("run-1", 1, DurableReturnState.Dispatched, "sha256:abc");
+    Require(stale is null, "stale version mutated state");
+}
+
+static async Task DurableStateCas()
+{
+    var file = Path.Combine(Path.GetTempPath(), "pmcro-return-" + Guid.NewGuid().ToString("N") + ".db");
+    var store = new SqliteSubagentReturnStateStore(file);
+    await store.TryTransitionAsync("run-2", null, DurableReturnState.Received, "sha256:def");
+    var candidates = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
+        new SqliteSubagentReturnStateStore(file).TryTransitionAsync("run-2", 1, DurableReturnState.Verified, "sha256:def")));
+    Require(candidates.Count(x => x is not null) == 1, "multiple concurrent writers won");
 }
 
 static void Require(bool condition, string message)

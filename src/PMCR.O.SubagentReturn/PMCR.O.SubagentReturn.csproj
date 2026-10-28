@@ -9,5 +9,6 @@
     <ProjectReference Include="../PMCR.O.Core/PMCR.O.Core.csproj" />
     <ProjectReference Include="../PMCR.O.Continuation/PMCR.O.Continuation.csproj" />
     <ProjectReference Include="../PMCR.O.Continuation.Plugin/PMCR.O.Continuation.Plugin.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
   </ItemGroup>
 </Project>
