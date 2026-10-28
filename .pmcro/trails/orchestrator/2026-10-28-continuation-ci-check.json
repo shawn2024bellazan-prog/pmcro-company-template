@@ -1,0 +1,43 @@
+{
+  "schema": "pmcro.trail.check.v1",
+  "record_type": "automated.check.result",
+  "requested_command": "@checker /pmcro:check validate_continuation_plugin",
+  "actor": "github-actions-runner",
+  "status": "passed_automated_checks",
+  "source": {
+    "repository": "shawn2024bellazan-prog/pmcro-company-template",
+    "branch": "feat/pmcro-activation",
+    "checked_commit": "cbdcb0b323b0df769d1da2a6d6d25bdc601a237d",
+    "workflow_run_id": 40620883003,
+    "job_id": 122594332395,
+    "url": "https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/40620883003"
+  },
+  "checks": {
+    "github_actions_workflow_loaded": "pass",
+    "workflow_conclusion": "success",
+    "net10_build": "pass",
+    "compiler_errors": 0,
+    "compiler_warnings": 0,
+    "contract_cases_passed": 20,
+    "contract_cases_total": 20,
+    "manifest_project_validation": "pass",
+    "actionlint_local": "pass"
+  },
+  "limits": {
+    "independent_semantic_checker": "pending",
+    "production_plugin_installation": "not_tested",
+    "external_marketplace_adapters": "not_implemented",
+    "distributed_idempotency_store": "not_implemented",
+    "capability_policy_host_integration": "not_tested"
+  },
+  "promotion": "not_authorized",
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@reflector",
+    "route": "/pmcro:reflect",
+    "action": "review_continuation_plugin_integration_readiness",
+    "evidence_refs": ["github-actions:40620883003", "commit:cbdcb0b323b0df769d1da2a6d6d25bdc601a237d"],
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}
