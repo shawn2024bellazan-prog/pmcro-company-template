@@ -1,0 +1,36 @@
+{
+  "schema": "pmcro.trail.make.v1",
+  "record_type": "maker.operation",
+  "intent": "Validate the generated continuation plugin through GitHub Actions",
+  "command": "@maker /pmcro:make continuation_ci_validation",
+  "actor": "maker",
+  "branch": "feat/pmcro-activation",
+  "status": "candidate",
+  "authorization": {
+    "basis": "user requested next PMCR-O validation and previously approved CI activation",
+    "scope": "feature-branch validation only",
+    "production_deployment": false
+  },
+  "evidence": {
+    "plan": "docs/decisions/0004-continuation-ci-plan.md",
+    "workflow": ".github/workflows/continuation-ci.yml"
+  },
+  "checks": {
+    "yaml_parse": "passed",
+    "actionlint_version": "1.7.7",
+    "actionlint_sha256": "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757",
+    "actionlint": "passed",
+    "github_actions_run": "pending",
+    "dotnet_build": "pending",
+    "contract_checks": "pending",
+    "separate_semantic_checker": "pending"
+  },
+  "next_seed": {
+    "return_to": "@orchestrator",
+    "target": "@checker",
+    "route": "/pmcro:check",
+    "action": "inspect_continuation_ci_run",
+    "state": "proposed",
+    "inherited_authority": false
+  }
+}

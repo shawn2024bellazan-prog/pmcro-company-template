@@ -1,0 +1,63 @@
+name: PMCR-O Continuation CI
+
+on:
+  push:
+    branches:
+      - feat/pmcro-activation
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  verify-continuation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate manifests and projects
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import xml.etree.ElementTree as ET
+
+          root = pathlib.Path('.')
+          manifest = json.loads((root / 'plugins/pmcro.continuation/plugin.json').read_text())
+          schema = json.loads((root / 'schemas/pmcro-plugin.schema.json').read_text())
+          catalog = json.loads((root / 'manifests/marketplace-sources.json').read_text())
+
+          for path in (root / 'src').rglob('*.csproj'):
+              ET.parse(path)
+          for path in (root / 'tests').rglob('*.csproj'):
+              ET.parse(path)
+
+          assert set(schema['required']).issubset(manifest)
+          assert manifest['artifactType'] == 'plugin'
+          assert manifest['governance']['enabledByDefault'] is False
+          assert manifest['governance']['approvalRequired'] is True
+          assert manifest['governance']['trailRequired'] is True
+          routes = [item['path'] for item in manifest['routes']]
+          assert len(routes) == len(set(routes))
+          assert catalog['executionEnabled'] is False
+          assert all(source['adapter'] == 'not-implemented' for source in catalog['sources'])
+          print(f'Validated plugin, schema, {len(routes)} routes and {len(catalog["sources"])} source references')
+          PY
+
+      - name: Build and run contract checks
+        shell: pwsh
+        run: ./scripts/validate.ps1
