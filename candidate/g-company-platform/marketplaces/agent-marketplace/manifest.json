@@ -1,0 +1,8 @@
+{
+  "name": "agent-marketplace",
+  "version": "0.1.0-candidate",
+  "status": "Candidate",
+  "cycle": "cycle-0009",
+  "governance": "PMCR-O shared",
+  "activation_required": true
+}
