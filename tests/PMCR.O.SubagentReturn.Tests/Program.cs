@@ -156,7 +156,12 @@ static async Task EnvelopeParsing()
     Require(json.Contains("\"i_context\"") && json.Contains("\"agent_id\":\"@maker\""), "wire names are not snake_case");
     var parsed = SubagentReturnParser.Parse(json);
     Require(parsed.ReasonCode is null && parsed.Envelope is not null &&
-            parsed.Envelope.IContext == original.IContext && parsed.Envelope.LifecycleState == "failed",
+            parsed.Envelope.IContext?.AgentId == original.IContext?.AgentId &&
+            parsed.Envelope.IContext?.Canonical?.Schema == "pmcro.i-context/v1" &&
+            parsed.Envelope.IContext?.Canonical?.Role == original.IContext?.Canonical?.Role &&
+            parsed.Envelope.IContext?.Canonical?.AuthorityCeilingRef == original.IContext?.Canonical?.AuthorityCeilingRef &&
+            parsed.Envelope.IContext?.Canonical?.ObjectIRefs.SequenceEqual(original.IContext!.Canonical!.ObjectIRefs, StringComparer.Ordinal) == true &&
+            parsed.Envelope.LifecycleState == "failed",
         "valid envelope did not round-trip");
 }
 
