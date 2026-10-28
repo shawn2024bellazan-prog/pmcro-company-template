@@ -1,0 +1,97 @@
+{
+  "contract": "pmcro.self-bootstrap/v1",
+  "id": "pmcro-self-bootstrap",
+  "lifecycle": "generated",
+  "target": "self",
+  "iAm": "I AM the Bootstrap Planner",
+  "skillType": "workflow",
+  "activationMode": "inspect",
+  "depth": 0,
+  "maxDepth": 1,
+  "checkerIndependent": true,
+  "authorityCreatesItself": false,
+  "allowsWorkerStart": false,
+  "sourceRef": "runtime/self-bootstrap.candidate.json",
+  "roles": [
+    "orchestrator",
+    "planner",
+    "maker",
+    "checker",
+    "reflector"
+  ],
+  "stages": [
+    {
+      "id": "discover",
+      "dependsOn": [],
+      "mode": "inspect",
+      "mutates": false,
+      "gate": "none"
+    },
+    {
+      "id": "plan",
+      "dependsOn": [
+        "discover"
+      ],
+      "mode": "simulate",
+      "mutates": false,
+      "gate": "none"
+    },
+    {
+      "id": "stage",
+      "dependsOn": [
+        "plan"
+      ],
+      "mode": "stage",
+      "mutates": true,
+      "gate": "approved-pinned-provenance"
+    },
+    {
+      "id": "check",
+      "dependsOn": [
+        "stage"
+      ],
+      "mode": "check",
+      "mutates": false,
+      "gate": "independent-checker"
+    },
+    {
+      "id": "authorize",
+      "dependsOn": [
+        "check"
+      ],
+      "mode": "authorize",
+      "mutates": true,
+      "gate": "host-owner-grant"
+    },
+    {
+      "id": "activate",
+      "dependsOn": [
+        "authorize"
+      ],
+      "mode": "execute",
+      "mutates": true,
+      "gate": "verified-activation-grant"
+    },
+    {
+      "id": "reflect",
+      "dependsOn": [
+        "check"
+      ],
+      "mode": "reflect",
+      "mutates": false,
+      "gate": "append-only-trail"
+    }
+  ],
+  "frozen": {
+    "seed0033": "HALT",
+    "seed0034": "UNEXECUTED",
+    "preserveHistoricalTrails": true
+  },
+  "nonGoals": [
+    "self-issued grants",
+    "self-checking",
+    "unbounded recursion",
+    "unattended installation",
+    "starting workers"
+  ]
+}

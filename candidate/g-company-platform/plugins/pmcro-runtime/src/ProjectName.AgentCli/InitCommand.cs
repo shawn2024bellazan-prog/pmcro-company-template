@@ -25,7 +25,8 @@ public static class InitCommand
         bool GrantIssued,
         bool ActivationPerformed,
         bool WorkersStarted,
-        string Authority);
+        string Authority,
+        SelfBootstrapContract.Projection SelfBootstrap);
 
     public static int Run(string command, string[] args)
     {
@@ -56,6 +57,7 @@ public static class InitCommand
                 foreach (var step in plan.NextSteps)
                     Console.WriteLine($"  {step.Id}: {step.Action} [gate: {step.Gate}]");
             }
+            Console.WriteLine($"Self-bootstrap: {plan.SelfBootstrap.ManifestStatus} {plan.SelfBootstrap.Decision} ({plan.SelfBootstrap.Reason})");
             Console.WriteLine($"Authority: {plan.Authority}");
             Console.WriteLine("No downloads, installs, registrations, grants, activations, or worker starts occurred.");
             return 0;
@@ -160,7 +162,8 @@ public static class InitCommand
             GrantIssued: false,
             ActivationPerformed: false,
             WorkersStarted: false,
-            Authority: "Discovery is not authorization. G: Seed 0033 remains HALT; Seed 0034 remains unexecuted.");
+            Authority: "Discovery is not authorization. G: Seed 0033 remains HALT; Seed 0034 remains unexecuted.",
+            SelfBootstrap: SelfBootstrapContract.Inspect(root));
     }
 
     private static bool ExecutableOnPath(string name)

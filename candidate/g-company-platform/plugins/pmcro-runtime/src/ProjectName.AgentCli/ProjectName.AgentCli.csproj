@@ -7,7 +7,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>pmcro</ToolCommandName>
     <PackageId>PMCR.O.Cli.Candidate</PackageId>
-    <Version>0.1.0-preview.1</Version>
+    <Version>0.1.0-preview.2</Version>
     <Description>Candidate PMCR-O CLI with read-only initialization planner and governed control plane.</Description>
     <PackageReadmeFile>README-PMCRO-CLI.md</PackageReadmeFile>
   </PropertyGroup>

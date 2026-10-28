@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pmcro:schemas:self-bootstrap:v1",
+  "title": "PMCR-O self-bootstrap candidate manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "id",
+    "lifecycle",
+    "target",
+    "iAm",
+    "skillType",
+    "activationMode",
+    "depth",
+    "maxDepth",
+    "checkerIndependent",
+    "authorityCreatesItself",
+    "allowsWorkerStart",
+    "sourceRef",
+    "roles",
+    "stages",
+    "frozen",
+    "nonGoals"
+  ],
+  "properties": {
+    "contract": {
+      "const": "pmcro.self-bootstrap/v1"
+    },
+    "id": {
+      "const": "pmcro-self-bootstrap"
+    },
+    "lifecycle": {
+      "const": "generated"
+    },
+    "target": {
+      "const": "self"
+    },
+    "iAm": {
+      "const": "I AM the Bootstrap Planner"
+    },
+    "skillType": {
+      "const": "workflow"
+    },
+    "activationMode": {
+      "const": "inspect"
+    },
+    "depth": {
+      "const": 0
+    },
+    "maxDepth": {
+      "const": 1
+    },
+    "checkerIndependent": {
+      "const": true
+    },
+    "authorityCreatesItself": {
+      "const": false
+    },
+    "allowsWorkerStart": {
+      "const": false
+    },
+    "sourceRef": {
+      "const": "runtime/self-bootstrap.candidate.json"
+    },
+    "roles": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "orchestrator"
+        },
+        {
+          "const": "planner"
+        },
+        {
+          "const": "maker"
+        },
+        {
+          "const": "checker"
+        },
+        {
+          "const": "reflector"
+        }
+      ],
+      "items": false,
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "dependsOn",
+          "mode",
+          "mutates",
+          "gate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dependsOn": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string"
+          },
+          "mutates": {
+            "type": "boolean"
+          },
+          "gate": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "frozen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed0033",
+        "seed0034",
+        "preserveHistoricalTrails"
+      ],
+      "properties": {
+        "seed0033": {
+          "const": "HALT"
+        },
+        "seed0034": {
+          "const": "UNEXECUTED"
+        },
+        "preserveHistoricalTrails": {
+          "const": true
+        }
+      }
+    },
+    "nonGoals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}
