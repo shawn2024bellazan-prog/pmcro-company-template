@@ -10,9 +10,10 @@ Open the folder G:\workspace\pmcro-company-platform in the real Microsoft VS Cod
 ## Marketplace sources
 
 This workspace settings.json configures:
-- github/copilot-plugins — GitHub's official Copilot plugin marketplace (normally included by default)
-- github/awesome-copilot — curated Copilot skills/plugins (normally included by default)
-- anthropics/claude-plugins-official — official Anthropic-managed Claude plugin directory (additional source)
+- github/copilot-plugins — GitHub's official Copilot plugin marketplace
+- github/awesome-copilot — curated Copilot skills/plugins
+- anthropics/claude-plugins-official — official Anthropic-managed Claude plugin directory
+- ShawnDelaineBellazanLoop/PMCR-O-Marketplace — existing public PMCR-O discovery source (separate from G: capability authority)
 
 No third-party plugins, hooks, MCP servers or actions are automatically installed. Treat all downloaded code as untrusted, inspect publishers and exact sources, and use marketplace trust prompts.
 
@@ -32,7 +33,7 @@ AGENTS.md supplies shared instructions. The candidate PMCR-O orchestrator role i
 ## Explicit non-automation
 
 No credentials are stored in settings.
-No MCP server is started or configured.
-No external plugin source was installed.
+The `.vscode/mcp.json` file configures the isolated `ProjectName.Marketplace.Mcp` candidate stdio server. It can be started by the VS Code MCP host only after normal workspace trust/tool approval; it is not the AppHost or a registered PMCR-O runtime. The local smoke test exercised read-only tools without starting role workers.
+No external plugin source was installed (the marketplace list only configures discovery).
 No extension was automatically installed; .vscode/extensions.json contains recommendations only.
 No .pmcro Trail, production registration, grant, key, revocation or activation record was modified.

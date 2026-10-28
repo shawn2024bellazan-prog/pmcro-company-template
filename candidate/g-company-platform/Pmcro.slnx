@@ -1,0 +1,25 @@
+<Solution>
+  <Project Path="plugins/pmcro-runtime/src/AgentSystem.AppHost/AgentSystem.AppHost.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Adapters/ProjectName.Adapters.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.AgentCli/ProjectName.AgentCli.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Application.Abstractions/ProjectName.Application.Abstractions.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Capabilities/ProjectName.Capabilities.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Contracts/ProjectName.Contracts.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Core/ProjectName.Core.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Domain/ProjectName.Domain.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Harness/ProjectName.Harness.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Harness.Tests/ProjectName.Harness.Tests.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Infrastructure/ProjectName.Infrastructure.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Marketplace/ProjectName.Marketplace.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Marketplace.Mcp/ProjectName.Marketplace.Mcp.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.McpServer/ProjectName.McpServer.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.OrchestrationApi/ProjectName.OrchestrationApi.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.OrchestratorService/ProjectName.OrchestratorService.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.RoleWorkerService/ProjectName.RoleWorkerService.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Runtime/ProjectName.Runtime.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Runtime.Abstractions/ProjectName.Runtime.Abstractions.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Runtime.Maf/ProjectName.Runtime.Maf.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.ServiceDefaults/ProjectName.ServiceDefaults.csproj" />
+  <Project Path="plugins/pmcro-runtime/src/ProjectName.Tooling/ProjectName.Tooling.csproj" />
+  <Project Path="plugins/pmcro-runtime/tests/ProjectName.Runtime.Tests/ProjectName.Runtime.Tests.csproj" />
+</Solution>
