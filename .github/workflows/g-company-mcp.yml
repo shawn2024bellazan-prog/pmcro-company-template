@@ -1,0 +1,46 @@
+name: PMCR-O G .NET MCP Candidate Checks
+on:
+  push:
+    branches: [feat/pmcro-subagent-return-v1, feat/pmcro-g-mcp-marketplace-candidate]
+    paths:
+      - 'candidate/g-company-platform/**'
+      - '.github/workflows/g-company-mcp.yml'
+  pull_request:
+    paths:
+      - 'candidate/g-company-platform/**'
+      - '.github/workflows/g-company-mcp.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build local read-only .NET 10 MCP server
+        run: dotnet build candidate/g-company-platform/plugins/pmcro-runtime/src/ProjectName.Marketplace.Mcp/ProjectName.Marketplace.Mcp.csproj --configuration Release --warnaserror
+      - name: Test actual MCP JSON-RPC handshake and read-only tools
+        run: python -m unittest discover -s candidate/g-company-platform/.agents/skills/download-action/tests -p 'test_mcp_server.py' -v
+      - name: Verify existing offline action-staging tests
+        run: node --test candidate/g-company-platform/.agents/skills/download-action/tests/download-action.test.cjs
+      - name: Parse marketplace and MCP JSON files
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          root=Path("candidate/g-company-platform")
+          for name in [".vscode/mcp.json", ".vscode/settings.json", "marketplaces/pmcro-marketplace/manifest.json", "marketplaces/csuite-marketplace/manifest.json"]:
+              json.loads((root/name).read_text(encoding="utf-8"))
+          print("candidate metadata JSON parsed")
