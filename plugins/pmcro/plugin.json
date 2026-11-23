@@ -1,0 +1,6 @@
+{
+  "name": "pmcro",
+  "version": "0.1.0",
+  "description": "Core PMCR-O lifecycle skills: plan, make, check, reflect. Analog of plugins/dotnet. Does not own high-level goals.",
+  "skills": ["./skills/"]
+}
