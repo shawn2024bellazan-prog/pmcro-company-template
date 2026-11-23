@@ -1,13 +1,16 @@
-# PMCR-O A2A-to-native-MAF bridge proof
+# PMCR-O A2A → native MAF bridge: verified
 
-This proof requires real execution through **both SDKs in the same task**.
+Hosted end-to-end execution: [GitHub Actions run 45117764473](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764473). Status **PASS**.
 
-- A2A client discovers the native Agent Card and calls a named worker by JSON-RPC.
-- The A2A SDK handler invokes a real Microsoft Agent Framework AIAgent.RunAsync.
-- MAF returns the response; the A2A SDK publishes it as a completed task artifact.
-- The verifier correlates the same A2A task ID with both the A2A handler record and the inner MAF core invocation.
-- The worker definition and source orchestrator skill are both pinned by SHA-256.
+The official A2A .NET SDK exposes the Agent Card for `pmcro-echo-worker`, receives a JSON-RPC task, and routes it into `PmcroEchoWorker`. The handler instantiates a real Microsoft Agent Framework `AIAgent` subclass `PmcroMafInnerAgent`, invokes `RunAsync` (native `RunCoreAsync`), and publishes its returned message as the A2A artifact. An independent client retrieves the completed task.
 
-The MAF adapter is deliberately thin: A2A owns the wire protocol and task lifecycle, MAF owns the internal agent invocation. No proprietary transport or fake invocations.
+- Actual task ID: `603414bd085e4b03a33ff237445d6bab`.
+- Returned artifact: `PMCRO-WORKER|pmcro-echo-worker|seed-a2a-proof-001`.
+- Agent definition SHA-256: `ad920eb0eef60af4e9142a918137a4a5acdfc2809406b11a1d770faccb339b90`.
+- Authored source skill SHA-256: `5c88acdf545dc1d25a51354a60366cb5813a436ccb39762f22759d85108e5050`.
+- Independent verifier: **PASS**, including `native_maf_aiaagent_invoked_for_a2a_task=true` and matching task ID in A2A and MAF invocation records.
+- Uploaded GitHub Actions artifact: `pmcro-a2a-discovery-task-evidence`.
 
-Passing this test does **not** mean that the five PMCR-O cognitive phases have executed or that a generative model has run; both remain separate gates.
+Boundary: A2A owns transport, discovery, task lifecycle and artifacts. MAF owns the inner agent invocation. This is deterministic, model-free proof—not a complete PMCR-O five-phase cycle, multi-agent task handoff, or A2A SSE streaming proof.
+
+The two SDKs are reused directly. No custom A2A transport protocol was implemented.

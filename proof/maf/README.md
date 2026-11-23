@@ -1,7 +1,11 @@
-# Native Microsoft Agent Framework AIAgent execution proof
+# Native Microsoft Agent Framework AIAgent execution
 
-The .NET 10 console program loads its authored JSON definition, derives SHA-256 for the definition and referenced PMCR-O phase skill, instantiates a real Microsoft.Agents.AI.AIAgent subclass, and calls AIAgent.RunAsync and AIAgent.RunStreamingAsync. It emits an independently verified invocation record for each core method.
+**PASS:** [direct MAF run 45117537243](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117537243) and [integrated A2A → MAF run 45117764473](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764473).
 
-Package: Microsoft.Agents.AI.Abstractions 1.28.0. No paid provider and no simulated results. This proves native framework agent invocation, not LLM inference, PMCR-O full five-phase orchestration, or A2A integration into MAF. The A2A task proof remains independently hosted in proof/a2a.
+The standalone .NET 10 program loads a SHA-256-bound agent definition and an existing PMCR-O phase skill. It instantiates `PmcroNativeEchoAgent : AIAgent` and invokes the real `AIAgent.RunAsync` and `AIAgent.RunStreamingAsync` APIs, recording two actual core method invocations. The independent verifier correlates the runtime result with both source hashes.
 
-Run: bash proof/maf/run-maf-proof.sh
+The integrated A2A exercise is in `proof/a2a/`: its A2A task handler invokes a separate native `PmcroMafInnerAgent : AIAgent`, returns the native response as an A2A artifact, and verifies both runtime invocation records for the same task.
+
+These are deterministic agent-runtime tests. Generative model inference and the complete five-phase PMCR-O cognitive cycle remain NOT_INVOKED.
+
+Run standalone: `bash proof/maf/run-maf-proof.sh`.
