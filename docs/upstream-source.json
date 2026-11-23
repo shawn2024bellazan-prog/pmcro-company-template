@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "source_repo": "https://github.com/shawn2024bellazan-prog/pmcro-marketplace-skills",
+  "source_commit": "9093b91df2527a7fbb0d390e90b8d04775077587",
+  "source_paths": [
+    "plugins/pmcro",
+    "plugins/pmcro-orchestrator"
+  ],
+  "files_copied_verbatim": true,
+  "profile_init": "NOT_INVOKED",
+  "native_runtime": "NOT_INVOKED"
+}

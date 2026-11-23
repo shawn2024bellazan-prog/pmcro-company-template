@@ -1,0 +1,6 @@
+{
+  "name": "pmcro-orchestrator",
+  "version": "0.1.0",
+  "description": "High-level goal specialist: orchestrate and decompose-goal. Analog of plugins/dotnet11. Does not replace core pmcro plan/make/check/reflect.",
+  "skills": ["./skills/"]
+}

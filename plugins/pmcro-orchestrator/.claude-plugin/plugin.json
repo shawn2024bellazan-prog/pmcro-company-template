@@ -1,0 +1,6 @@
+{
+  "name": "pmcro-orchestrator",
+  "version": "0.1.0",
+  "description": "High-level goal specialist (orchestrate, decompose-goal).",
+  "skills": ["./skills/"]
+}
