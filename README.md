@@ -1,26 +1,21 @@
 # PMCR-O Company Template
 
-Minimal .NET-first PMCR-O cognitive-loop authoring source. Authored source remains in `AGENTS.md` and `plugins/`; `.pmcro/` is a managed output and is never authoritative or committed.
+Minimal .NET-first PMCR-O cognitive-loop authoring source. `AGENTS.md` and `plugins/` are authored; `.pmcro/` is a managed generated projection.
 
-## Installed component source
+The five original PMCR-O phase skills and two orchestrator skills are source-pinned from the existing marketplace. The installed `/init` handler is preserved verbatim; its three missing dependencies were **newly implemented recovery modules**, not recovered originals.
 
-- `plugins/pmcro`: the five core phase skills, `orchestrate`, `plan`, `make`, `check`, and `reflect`.
-- `plugins/pmcro-orchestrator`: high-level goal admission and constraint decomposition.
-- `plugins/pmcro-commands/skills/init/scripts/init.py`: unchanged installed `/init` executable.
-- `plugins/pmcro/skills/pmcro-agent/scripts/`: new, explicitly labeled recovery dependencies for `/init`. These are not represented as the missing original upstream modules.
-- `proof/`: independent native C# MCP, A2A, MAF and integrated A2A-to-MAF runtime exercises.
+## Real GitHub Actions execution evidence — November 23, 2026
 
-## Real execution evidence on GitHub Actions (November 23, 2026)
+| Gate | Evidence |
+| --- | --- |
+| Managed `/init` profile | [PASS](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764412) — 7 skills, 11 domains, 5 memory partitions, independently verified receipt |
+| .NET MCP C# SDK | [PASS](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764347) — initialize, tools/list, Add(2,3)=5 |
+| Native Microsoft Agent Framework | [PASS](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764406) — AIAgent.RunAsync and RunStreamingAsync |
+| A2A to native MAF | [PASS](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764473) — Agent Card, A2A task, real inner MAF invocation, artifact |
+| Five-phase native MAF cycle | [PASS](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45118225215) — 5 actual AIAgent.RunAsync calls, source-bound phases, SHA-256-linked trail |
 
-| Gate | Result | Evidence |
-| --- | --- | --- |
-| `/init` managed profile | PASS | [run 45117764412](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764412): seven skills, 11 domains, five memory partitions, independent receipt verification |
-| Official .NET MCP | PASS | [run 45117764347](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764347): initialize, tools/list, Add(2,3) = 5 |
-| Native Microsoft Agent Framework | PASS | [run 45117764406](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764406): real AIAgent.RunAsync and RunStreamingAsync |
-| A2A to native MAF | PASS | [run 45117764473](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45117764473): Agent Card, JSON-RPC, task artifact and same-task MAF handler evidence |
+## Scope boundary
 
-## Critical boundaries
+The five phase agents are **deterministic MAF processors**. They actually execute seed admission, plan generation, concrete test artifact creation, hash validation and reflection, but not generative inference, production tool use or five independently hosted agents. All verified executions occurred on ephemeral GitHub Actions runners—not a user Windows host. The full production PMCR-O agent company remains a separate implementation goal.
 
-All proofs ran in an ephemeral GitHub Actions runner, not on a Windows host or a production deployment. The A2A worker is deterministic and uses a native MAF AIAgent internally, but does not use a generative model. The actual PMCR-O five-phase cognitive execution with separately invoked orchestrator/planner/maker/checker/reflector roles remains **NOT_INVOKED**. Its invocation and trails must be independently proved as a distinct gate.
-
-See `docs/initialization-status.md`, `docs/init-recovery-provenance.md`, and `docs/a2a-maf-bridge.md`.
+See `docs/initialization-status.md`, `docs/init-recovery-provenance.md`, `docs/a2a-maf-bridge.md`, and `proof/cycle/README.md`.

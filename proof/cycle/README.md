@@ -1,11 +1,13 @@
-# PMCR-O deterministic five-phase native MAF proof
+# Deterministic PMCR-O five-phase native MAF proof
 
-First bounded proof that dispatches all five named PMCR-O roles in strict order using five real `AIAgent.RunAsync` invocations.
+Verified actual execution: [run 45118225215](https://github.com/shawn2024bellazan-prog/pmcro-company-template/actions/runs/45118225215).
 
-Every native phase agent loads its corresponding authored source `SKILL.md` by path and records its SHA-256. The phases execute actual deterministic work: admit one seed, produce READY plan, create a concrete artifact, independently check its content/hash, and reflect with STOP and next seed requiring Orchestrator authorization.
+The .NET 10 process invokes five native `AIAgent.RunAsync` phase processors, in order: orchestrate → plan → make → check → reflect. Every processor is bound to an existing authored SKILL.md and its SHA-256; every handler invocation is recorded separately. Check verifies the test artifact and Reflect returns PASS with the next seed held for Orchestrator authorization.
 
-Five source-hash-bound output frames are linked by SHA-256 and each correlated to a separate native `RunCoreAsync` invocation record. The independent Python checker rejects source, chain, phase order, semantic, or handler-record inconsistencies.
+An independent Python checker validates all five invocation records, frame ordering and semantics, source hashes and the hash-linked chain. Trail head from the passing run: `b94c19dc3f1dbd77b7a3ed285c0d7f9b548d05509faee8db013c98d9d8845c14`.
 
-This is a deterministic phase **execution proof**. It is not five independently hosted A2A services, does not run any LLM, does not perform production domain work, and does not demonstrate multi-agent reasoning or a complete autonomous product lifecycle. Future increments can replace bounded processors with real registered PMCR-O subject agents.
+A follow-up hardening commit added a negative tamper test that alters a copy of the Make frame. That test must fail verification to be accepted; inspect its GitHub run evidence before claiming it passed.
 
-Run with `bash proof/cycle/run-cycle-proof.sh` on .NET 10 SDK. The hosted GitHub Actions workflow runs the proof and uploads evidence.
+Scope: deterministic phase invocations, not autonomous model reasoning, production domain tools, or separately deployed phase agents.
+
+Run: `bash proof/cycle/run-cycle-proof.sh` on a .NET 10 SDK machine.
