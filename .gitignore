@@ -1,0 +1,8 @@
+/.pmcro/
+/.csuite/
+/dist/
+**/bin/
+**/obj/
+.env
+.env.*
+!.env.example

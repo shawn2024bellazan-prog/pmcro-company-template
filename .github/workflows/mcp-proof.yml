@@ -1,0 +1,27 @@
+name: PMCR-O .NET MCP protocol proof
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mcp-client-server-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run official MCP C# SDK client/server proof
+        shell: bash
+        run: bash proof/run-proof.sh
+      - name: Upload evidence even if execution failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmcro-mcp-proof-evidence
+          path: evidence/
+          if-no-files-found: warn

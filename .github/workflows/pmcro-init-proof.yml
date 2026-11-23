@@ -1,0 +1,48 @@
+name: PMCR-O /init recovery proof
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [bootstrap/pmcro-orchestrator-initial]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-init:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Test original handler with recovered source modules
+        run: python3 -m unittest discover -s tests -p test_init_recovery.py -v
+      - name: Run /init against this exact marketplace checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence .ci-target
+          python3 plugins/pmcro-commands/skills/init/scripts/init.py write --root .ci-target | tee evidence/init-write.json
+          python3 plugins/pmcro-commands/skills/init/scripts/init.py verify --root .ci-target | tee evidence/init-verify.json
+          python3 scripts/verify_profile.py --root .ci-target | tee evidence/init-independent.json
+          python3 plugins/pmcro-commands/skills/init/scripts/init.py write --root .ci-target | tee evidence/init-idempotence.json
+          cp .ci-target/.pmcro/trails/init-receipt.json evidence/init-receipt.json
+          cp .ci-target/.pmcro/profile.json evidence/profile.json
+          sha256sum evidence/*.json > evidence/sha256sums.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          ev = Path("evidence")
+          for file in ("init-write.json", "init-verify.json", "init-independent.json"):
+              assert json.loads((ev / file).read_text())["status"] == "PASS", file
+          assert json.loads((ev / "init-idempotence.json").read_text())["status"] == "ALREADY_INITIALIZED"
+          print("RECOVERY_INIT_PROOF: PASS")
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmcro-init-proof-evidence
+          path: evidence/
+          if-no-files-found: warn

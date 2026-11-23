@@ -1,0 +1,27 @@
+name: PMCR-O A2A discovery and task execution proof
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  a2a-agent-card-task:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run A2A server and independent .NET client
+        shell: bash
+        run: bash proof/a2a/run-a2a-proof.sh
+      - name: Upload actual protocol evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmcro-a2a-discovery-task-evidence
+          path: evidence/a2a/
+          if-no-files-found: warn

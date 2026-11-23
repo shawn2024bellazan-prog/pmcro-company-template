@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "agent_id": "pmcro-echo-worker",
+  "name": "PMCR-O Echo Worker",
+  "skill_id": "pmcro-echo",
+  "handler_class": "PmcroEchoWorker",
+  "response_prefix": "PMCRO-WORKER",
+  "source_skill": "plugins/pmcro-orchestrator/skills/orchestrate/SKILL.md",
+  "description": "Bounded deterministic A2A worker. No LLM or PMCR-O cognitive phase execution."
+}
