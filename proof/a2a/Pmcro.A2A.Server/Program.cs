@@ -1,5 +1,8 @@
 using A2A;
 using A2A.AspNetCore;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -62,7 +65,10 @@ public sealed class PmcroEchoWorker : IAgentHandler
         await updater.SubmitAsync(cancellationToken: cancellationToken);
         await updater.StartWorkAsync(cancellationToken: cancellationToken);
         var input = context.UserText;
-        var output = $"{_definition.ResponsePrefix}|{_definition.AgentId}|{input}";
+        AIAgent nativeAgent = new PmcroMafInnerAgent(_definition, context.TaskId);
+        var nativeResult = await nativeAgent.RunAsync(input, cancellationToken: cancellationToken);
+        var output = nativeResult.Messages.FirstOrDefault()?.Text
+            ?? throw new InvalidDataException("MAF returned no agent message");
         await updater.AddArtifactAsync([Part.FromText(output)],
             name: "pmcro-echo-artifact", cancellationToken: cancellationToken);
         await updater.CompleteAsync(cancellationToken: cancellationToken);
@@ -104,4 +110,90 @@ public sealed class PmcroEchoWorker : IAgentHandler
             Tags = ["pmcro", "worker", "deterministic-proof"]
         }]
     };
+}
+
+public sealed class PmcroMafInnerAgent : AIAgent
+{
+    private readonly AgentDefinition _definition;
+    private readonly string _a2aTaskId;
+    public PmcroMafInnerAgent(AgentDefinition definition, string a2aTaskId)
+    {
+        _definition = definition;
+        _a2aTaskId = a2aTaskId;
+    }
+    protected override string? IdCore => _definition.AgentId;
+    public override string? Name => _definition.Name;
+    public override string? Description => "Native MAF agent invoked by A2A SDK handler";
+
+    protected override ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken = default)
+        => new(new LocalMafSession());
+
+    protected override ValueTask<JsonElement> SerializeSessionCoreAsync(
+        AgentSession session, JsonSerializerOptions? jsonSerializerOptions = null,
+        CancellationToken cancellationToken = default)
+        => new(JsonSerializer.SerializeToElement(new { session_kind = "test-only" }));
+
+    protected override ValueTask<AgentSession> DeserializeSessionCoreAsync(
+        JsonElement serializedState, JsonSerializerOptions? jsonSerializerOptions = null,
+        CancellationToken cancellationToken = default)
+        => new(new LocalMafSession());
+
+    protected override Task<AgentResponse> RunCoreAsync(
+        IEnumerable<ChatMessage> messages,
+        AgentSession? session = null,
+        AgentRunOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var input = messages.LastOrDefault()?.Text ?? "";
+        var output = $"{_definition.ResponsePrefix}|{_definition.AgentId}|{input}";
+        Audit("RunCoreAsync", input, output);
+        return Task.FromResult(new AgentResponse
+        {
+            AgentId = Id,
+            ResponseId = Guid.NewGuid().ToString("N"),
+            Messages = [new ChatMessage(ChatRole.Assistant, output)]
+        });
+    }
+
+    protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
+        IEnumerable<ChatMessage> messages,
+        AgentSession? session = null,
+        AgentRunOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var input = messages.LastOrDefault()?.Text ?? "";
+        var output = $"{_definition.ResponsePrefix}|{_definition.AgentId}|{input}";
+        Audit("RunCoreStreamingAsync", input, output);
+        yield return new AgentResponseUpdate
+        {
+            AgentId = Id,
+            Role = ChatRole.Assistant,
+            Contents = [new TextContent(output)],
+            MessageId = Guid.NewGuid().ToString("N"),
+            ResponseId = Guid.NewGuid().ToString("N")
+        };
+        await Task.CompletedTask;
+    }
+
+    private void Audit(string operation, string input, string output)
+    {
+        var path = Environment.GetEnvironmentVariable("PMCRO_A2A_MAF_INVOCATIONS")
+            ?? throw new InvalidOperationException("MAF bridge invocation evidence path is required");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        File.AppendAllText(path, JsonSerializer.Serialize(new
+        {
+            operation,
+            handler = nameof(PmcroMafInnerAgent),
+            agent_id = _definition.AgentId,
+            a2a_task_id = _a2aTaskId,
+            definition_sha256 = _definition.DefinitionSha256,
+            source_skill_sha256 = _definition.SourceSkillSha256,
+            input,
+            output
+        }) + "\n");
+    }
+
+    private sealed class LocalMafSession : AgentSession { }
 }

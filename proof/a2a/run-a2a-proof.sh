@@ -10,6 +10,7 @@ dotnet build proof/a2a/Pmcro.A2A.Client/Pmcro.A2A.Client.csproj -c Release --no-
 find proof/a2a -type f \( -name '*.cs' -o -name '*.csproj' -o -name '*.json' \) -print0 | sort -z | xargs -0 sha256sum > evidence/a2a/source-sha256.txt
 export PMCRO_A2A_AGENT_DEFINITION="$PWD/proof/a2a/agents/pmcro-echo.definition.json"
 export PMCRO_A2A_INVOCATIONS="$PWD/evidence/a2a/agent-invocations.jsonl"
+export PMCRO_A2A_MAF_INVOCATIONS="$PWD/evidence/a2a/maf-inner-invocations.jsonl"
 export PMCRO_A2A_URL="http://127.0.0.1:5077"
 export ASPNETCORE_URLS="$PMCRO_A2A_URL"
 dotnet proof/a2a/Pmcro.A2A.Server/bin/Release/net10.0/Pmcro.A2A.Server.dll > evidence/a2a/server-stdout.log 2> evidence/a2a/server-stderr.log &

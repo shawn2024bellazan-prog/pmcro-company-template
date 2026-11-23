@@ -44,6 +44,18 @@ def main(root: pathlib.Path, evidence: pathlib.Path):
         "agent_source_skill": skill.is_file(),
         "client_verified": client.get("verified") is True
     }
+    maf_events = [json.loads(x) for x in (evidence / "maf-inner-invocations.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
+    checks["native_maf_aiaagent_invoked_for_a2a_task"] = any(
+        e.get("operation") == "RunCoreAsync"
+        and e.get("handler") == "PmcroMafInnerAgent"
+        and e.get("agent_id") == definition["agent_id"]
+        and e.get("a2a_task_id") == client.get("task_id")
+        and e.get("definition_sha256") == sha(dpath)
+        and e.get("source_skill_sha256") == sha(skill)
+        and e.get("input") == client.get("request_input")
+        and e.get("output") == expected
+        for e in maf_events
+    )
     good = all(checks.values())
     print(json.dumps({"status": "PASS" if good else "FAIL",
                       "checks": checks,
